@@ -12,6 +12,26 @@ exports.handler = async (event, context) => {
   }
 
   try {
+    // Handle image requests
+    if (event.queryStringParameters && event.queryStringParameters.path === 'uploads/image.php') {
+      const imagePath = event.queryStringParameters.image;
+      const imageUrl = `http://161.97.179.72/wasselle/api/uploads/image.php?path=${imagePath}`;
+      
+      const response = await fetch(imageUrl);
+      const imageBuffer = await response.arrayBuffer();
+      
+      return {
+        statusCode: 200,
+        headers: {
+          ...headers,
+          'Content-Type': response.headers.get('content-type') || 'image/jpeg',
+        },
+        body: Buffer.from(imageBuffer).toString('base64'),
+        isBase64Encoded: true
+      };
+    }
+
+    // Handle API requests (existing code)
     const apiPath = event.headers['x-api-path'];
     
     if (!apiPath) {

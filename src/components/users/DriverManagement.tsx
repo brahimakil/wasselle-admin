@@ -1143,7 +1143,7 @@ const DriverManagement: React.FC = () => {
                   {viewUser.face_photo ? (
                     <div className="border rounded-lg p-2">
                       <img 
-                        src={`https://161.97.179.72/wasselle/api/uploads/image.php?path=${viewUser.face_photo}`}
+                        src={`/.netlify/functions/proxy?path=uploads/image.php&image=${encodeURIComponent(viewUser.face_photo)}`}
                         alt="Face Photo"
                         className="w-full h-48 object-cover rounded"
                         onError={(e) => {
@@ -1163,7 +1163,7 @@ const DriverManagement: React.FC = () => {
                   {viewUser.passport_photo ? (
                     <div className="border rounded-lg p-2">
                       <img 
-                        src={`https://161.97.179.72/wasselle/api/uploads/image.php?path=${viewUser.passport_photo}`}
+                        src={`/.netlify/functions/proxy?path=uploads/image.php&image=${encodeURIComponent(viewUser.passport_photo)}`}
                         alt="Passport/ID Photo"
                         className="w-full h-48 object-cover rounded"
                         onError={(e) => {
