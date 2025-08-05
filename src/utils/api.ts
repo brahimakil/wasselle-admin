@@ -248,9 +248,28 @@ export class ApiService {
     return data;
   }
 
+  // Helper method to make requests through proxy
+  private static async makeProxyRequest(endpoint: string, options: RequestInit = {}): Promise<Response> {
+    const isUsingProxy = API_BASE_URL.startsWith('/api');
+    
+    if (isUsingProxy) {
+      // Using Vercel proxy
+      return fetch('/api/proxy', {
+        ...options,
+        headers: {
+          ...options.headers,
+          'X-API-Path': endpoint,
+        },
+      });
+    } else {
+      // Direct API call
+      return fetch(`${API_BASE_URL}/${endpoint}`, options);
+    }
+  }
+
   // Admin Authentication
   static async adminLogin(email: string, password: string): Promise<ApiResponse> {
-    const response = await fetch(`${API_BASE_URL}/admin/login.php`, {
+    const response = await this.makeProxyRequest('admin/login.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
@@ -267,7 +286,7 @@ export class ApiService {
   }
 
   static async adminRegister(name: string, email: string, password: string): Promise<ApiResponse> {
-    const response = await fetch(`${API_BASE_URL}/admin/register.php`, {
+    const response = await this.makeProxyRequest('admin/register.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email, password })
@@ -314,7 +333,8 @@ export class ApiService {
       }
     });
 
-    const response = await fetch(`${API_BASE_URL}/admin/users/list.php?${queryParams}`, {
+    const endpoint = `admin/users/list.php${queryParams.toString() ? `?${queryParams}` : ''}`;
+    const response = await this.makeProxyRequest(endpoint, {
       headers: this.getAuthHeaders()
     });
     
@@ -322,7 +342,7 @@ export class ApiService {
   }
 
   static async getUser(id: number): Promise<ApiResponse> {
-    const response = await fetch(`${API_BASE_URL}/admin/users/get.php?id=${id}`, {
+    const response = await this.makeProxyRequest(`admin/users/get.php?id=${id}`, {
       headers: this.getAuthHeaders()
     });
     
@@ -330,7 +350,7 @@ export class ApiService {
   }
 
   static async updateUser(userData: Partial<User> & { id: number }): Promise<ApiResponse> {
-    const response = await fetch(`${API_BASE_URL}/admin/users/update.php`, {
+    const response = await this.makeProxyRequest('admin/users/update.php', {
       method: 'PUT',
       headers: this.getAuthHeaders(),
       body: JSON.stringify(userData)
@@ -340,7 +360,7 @@ export class ApiService {
   }
 
   static async deleteUser(id: number): Promise<ApiResponse> {
-    const response = await fetch(`${API_BASE_URL}/admin/users/delete.php`, {
+    const response = await this.makeProxyRequest('admin/users/delete.php', {
       method: 'DELETE',
       headers: this.getAuthHeaders(),
       body: JSON.stringify({ id })
@@ -378,7 +398,7 @@ export class ApiService {
     if (userData.passport_photo) formData.append('passport_photo', userData.passport_photo);
 
     const token = localStorage.getItem('admin_token');
-    const response = await fetch(`${API_BASE_URL}/user/register-with-documents.php`, {
+    const response = await this.makeProxyRequest('user/register-with-documents.php', {
       method: 'POST',
       headers: {
         ...(token && { 'Authorization': `Bearer ${token}` })
@@ -392,7 +412,7 @@ export class ApiService {
 
   // Plan Management
   static async getPlans(): Promise<ApiResponse> {
-    const response = await fetch(`${API_BASE_URL}/admin/plans/list.php`, {
+    const response = await this.makeProxyRequest('admin/plans/list.php', {
       headers: this.getAuthHeaders()
     });
     
@@ -406,7 +426,7 @@ export class ApiService {
     max_posts: number;
     duration_days: number;
   }): Promise<ApiResponse> {
-    const response = await fetch(`${API_BASE_URL}/admin/plans/create.php`, {
+    const response = await this.makeProxyRequest('admin/plans/create.php', {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify(planData)
@@ -423,7 +443,7 @@ export class ApiService {
     max_posts?: number;
     duration_days?: number;
   }): Promise<ApiResponse> {
-    const response = await fetch(`${API_BASE_URL}/admin/plans/update.php`, {
+    const response = await this.makeProxyRequest('admin/plans/update.php', {
       method: 'PUT',
       headers: this.getAuthHeaders(),
       body: JSON.stringify(planData)
@@ -433,7 +453,7 @@ export class ApiService {
   }
 
   static async deletePlan(id: number): Promise<ApiResponse> {
-    const response = await fetch(`${API_BASE_URL}/admin/plans/delete.php`, {
+    const response = await this.makeProxyRequest('admin/plans/delete.php', {
       method: 'DELETE',
       headers: this.getAuthHeaders(),
       body: JSON.stringify({ id })
@@ -457,7 +477,8 @@ export class ApiService {
       }
     });
 
-    const response = await fetch(`${API_BASE_URL}/admin/subscriptions/list.php?${queryParams}`, {
+    const endpoint = `admin/subscriptions/list.php${queryParams.toString() ? `?${queryParams}` : ''}`;
+    const response = await this.makeProxyRequest(endpoint, {
       headers: this.getAuthHeaders()
     });
     
@@ -469,7 +490,7 @@ export class ApiService {
     plan_id: number;
     start_date: string;
   }): Promise<ApiResponse> {
-    const response = await fetch(`${API_BASE_URL}/admin/subscriptions/create.php`, {
+    const response = await this.makeProxyRequest('admin/subscriptions/create.php', {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify(subscriptionData)
@@ -480,7 +501,7 @@ export class ApiService {
 
   // Remove/deactivate subscription
   static async removeSubscription(subscription_id: number): Promise<ApiResponse> {
-    const response = await fetch(`${API_BASE_URL}/admin/subscriptions/remove.php`, {
+    const response = await this.makeProxyRequest('admin/subscriptions/remove.php', {
       method: 'DELETE',
       headers: this.getAuthHeaders(),
       body: JSON.stringify({ subscription_id })
@@ -504,7 +525,7 @@ export class ApiService {
 
     console.log('Creating subscription with data:', subscriptionData);
 
-    const response = await fetch(`${API_BASE_URL}/admin/subscriptions/create.php`, {
+    const response = await this.makeProxyRequest('admin/subscriptions/create.php', {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify(subscriptionData)
@@ -520,7 +541,7 @@ export class ApiService {
 
   // Get driver subscriptions
   static async getDriverSubscriptions(driver_id: number): Promise<ApiResponse> {
-    const response = await fetch(`${API_BASE_URL}/admin/users/get.php?id=${driver_id}`, {
+    const response = await this.makeProxyRequest(`admin/users/get.php?id=${driver_id}`, {
       headers: this.getAuthHeaders()
     });
     
@@ -541,7 +562,8 @@ export class ApiService {
       }
     });
 
-    const response = await fetch(`${API_BASE_URL}/admin/payments/list.php?${queryParams}`, {
+    const endpoint = `admin/payments/list.php${queryParams.toString() ? `?${queryParams}` : ''}`;
+    const response = await this.makeProxyRequest(endpoint, {
       headers: this.getAuthHeaders()
     });
     
@@ -549,7 +571,7 @@ export class ApiService {
   }
 
   static async approvePayment(payment_id: number, admin_note?: string): Promise<ApiResponse> {
-    const response = await fetch(`${API_BASE_URL}/admin/payments/approve.php`, {
+    const response = await this.makeProxyRequest('admin/payments/approve.php', {
       method: 'PUT',
       headers: this.getAuthHeaders(),
       body: JSON.stringify({ payment_id, admin_note })
@@ -559,7 +581,7 @@ export class ApiService {
   }
 
   static async rejectPayment(payment_id: number, admin_note: string): Promise<ApiResponse> {
-    const response = await fetch(`${API_BASE_URL}/admin/payments/reject.php`, {
+    const response = await this.makeProxyRequest('admin/payments/reject.php', {
       method: 'PUT',
       headers: this.getAuthHeaders(),
       body: JSON.stringify({ payment_id, admin_note })
@@ -576,7 +598,7 @@ export class ApiService {
     status?: 'pending' | 'approved' | 'rejected';
     admin_note?: string;
   }): Promise<ApiResponse> {
-    const response = await fetch(`${API_BASE_URL}/admin/payments/create.php`, {
+    const response = await this.makeProxyRequest('admin/payments/create.php', {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify({
@@ -590,7 +612,7 @@ export class ApiService {
 
   // Delete payment record completely
   static async deletePayment(paymentId: number): Promise<ApiResponse> {
-    const response = await fetch(`${API_BASE_URL}/admin/payments/delete.php`, {
+    const response = await this.makeProxyRequest('admin/payments/delete.php', {
       method: 'DELETE',
       headers: this.getAuthHeaders(),
       body: JSON.stringify({ payment_id: paymentId })
@@ -601,7 +623,7 @@ export class ApiService {
 
   // Get payments for a specific driver (to find payments to delete)
   static async getDriverPayments(driverId: number): Promise<ApiResponse> {
-    const response = await fetch(`${API_BASE_URL}/admin/payments/list.php?driver_id=${driverId}&limit=100`, {
+    const response = await this.makeProxyRequest(`admin/payments/list.php?driver_id=${driverId}&limit=100`, {
       headers: this.getAuthHeaders()
     });
     
@@ -673,7 +695,7 @@ export class ApiService {
 
   // Alternative: Update specific payment status 
   static async updatePaymentStatus(payment_id: number, status: 'pending' | 'approved' | 'rejected'): Promise<ApiResponse> {
-    const response = await fetch(`${API_BASE_URL}/admin/payments/update-status.php`, {
+    const response = await this.makeProxyRequest('admin/payments/update-status.php', {
       method: 'PUT',
       headers: this.getAuthHeaders(),
       body: JSON.stringify({ 
@@ -756,14 +778,14 @@ export class ApiService {
     if (params.country) queryParams.append('country', params.country.toString());
     if (params.is_active !== undefined) queryParams.append('is_active', params.is_active.toString());
 
-    const response = await fetch(`${API_BASE_URL}/admin/posts/list.php?${queryParams}`, {
+    const response = await this.makeProxyRequest(`admin/posts/list.php?${queryParams}`, {
       headers: this.getAuthHeaders()
     });
     return this.handleResponse(response);
   }
 
   static async deletePost(postId: number): Promise<ApiResponse> {
-    const response = await fetch(`${API_BASE_URL}/admin/posts/delete.php?id=${postId}`, {
+    const response = await this.makeProxyRequest(`admin/posts/delete.php?id=${postId}`, {
       method: 'DELETE',
       headers: this.getAuthHeaders()
     });
@@ -780,7 +802,7 @@ export class ApiService {
     phone_visible?: number;
     is_active?: number;
   }): Promise<ApiResponse> {
-    const response = await fetch(`${API_BASE_URL}/admin/posts/update.php?id=${postId}`, {
+    const response = await this.makeProxyRequest(`admin/posts/update.php?id=${postId}`, {
       method: 'PUT',
       headers: this.getAuthHeaders(),
       body: JSON.stringify(postData)
@@ -790,7 +812,7 @@ export class ApiService {
 
   // Get countries for filtering/display (Public endpoint - no auth required)
   static async getCountries(): Promise<ApiResponse> {
-    const response = await fetch(`${API_BASE_URL}/countries/list.php`);
+    const response = await this.makeProxyRequest('countries/list.php');
     return this.handleResponse(response);
   }
 
@@ -805,14 +827,14 @@ export class ApiService {
     if (params.limit) queryParams.append('limit', params.limit.toString());
     if (params.search) queryParams.append('search', params.search);
 
-    const response = await fetch(`${API_BASE_URL}/admin/countries/list.php?${queryParams}`, {
+    const response = await this.makeProxyRequest(`admin/countries/list.php?${queryParams}`, {
       headers: this.getAuthHeaders()
     });
     return this.handleResponse(response);
   }
 
   static async createCountry(name: string): Promise<ApiResponse> {
-    const response = await fetch(`${API_BASE_URL}/admin/countries/create.php`, {
+    const response = await this.makeProxyRequest('admin/countries/create.php', {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify({ name })
@@ -821,7 +843,7 @@ export class ApiService {
   }
 
   static async updateCountry(id: number, name: string): Promise<ApiResponse> {
-    const response = await fetch(`${API_BASE_URL}/admin/countries/update.php`, {
+    const response = await this.makeProxyRequest('admin/countries/update.php', {
       method: 'PUT',
       headers: this.getAuthHeaders(),
       body: JSON.stringify({ id, name })
@@ -830,7 +852,7 @@ export class ApiService {
   }
 
   static async deleteCountry(id: number): Promise<ApiResponse> {
-    const response = await fetch(`${API_BASE_URL}/admin/countries/delete.php?id=${id}`, {
+    const response = await this.makeProxyRequest(`admin/countries/delete.php?id=${id}`, {
       method: 'DELETE',
       headers: this.getAuthHeaders()
     });
@@ -848,7 +870,7 @@ export class ApiService {
     if (params.limit) queryParams.append('limit', params.limit.toString());
     if (params.unread_only) queryParams.append('unread_only', 'true');
 
-    const response = await fetch(`${API_BASE_URL}/admin/notifications/list.php?${queryParams}`, {
+    const response = await this.makeProxyRequest(`admin/notifications/list.php?${queryParams}`, {
       headers: this.getAuthHeaders()
     });
     return this.handleResponse(response);
@@ -857,7 +879,7 @@ export class ApiService {
   static async markNotificationAsRead(notificationId?: number): Promise<ApiResponse> {
     const body = notificationId ? { notification_id: notificationId } : {};
     
-    const response = await fetch(`${API_BASE_URL}/admin/notifications/mark-read.php`, {
+    const response = await this.makeProxyRequest('admin/notifications/mark-read.php', {
       method: 'PUT',
       headers: this.getAuthHeaders(),
       body: JSON.stringify(body)
@@ -868,7 +890,7 @@ export class ApiService {
   // Create custom notifications (for testing or manual announcements only)
   // Note: Admin action notifications are automatically created by the backend
   static async createAdminNotification(type: string, message: string, data: any): Promise<ApiResponse> {
-    const response = await fetch(`${API_BASE_URL}/admin/notifications/create.php`, {
+    const response = await this.makeProxyRequest('admin/notifications/create.php', {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify({
@@ -891,7 +913,7 @@ export class ApiService {
       limit: (params.limit || 20).toString()
     });
 
-    const response = await fetch(`${API_BASE_URL}/admin/drivers/ratings.php?${queryParams}`, {
+    const response = await this.makeProxyRequest(`admin/drivers/ratings.php?${queryParams}`, {
       headers: this.getAuthHeaders()
     });
     
