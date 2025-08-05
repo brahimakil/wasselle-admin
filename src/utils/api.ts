@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://161.97.179.72/wasselle/api';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '/.netlify/functions';
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -250,21 +250,14 @@ export class ApiService {
 
   // Helper method to make requests through proxy
   private static async makeProxyRequest(endpoint: string, options: RequestInit = {}): Promise<Response> {
-    const isUsingProxy = API_BASE_URL.startsWith('/api');
-    
-    if (isUsingProxy) {
-      // Using Vercel proxy
-      return fetch('/api/proxy', {
-        ...options,
-        headers: {
-          ...options.headers,
-          'X-API-Path': endpoint,
-        },
-      });
-    } else {
-      // Direct API call
-      return fetch(`${API_BASE_URL}/${endpoint}`, options);
-    }
+    // For Netlify, we call the proxy function directly
+    return fetch('/.netlify/functions/proxy', {
+      ...options,
+      headers: {
+        ...options.headers,
+        'X-API-Path': endpoint,
+      },
+    });
   }
 
   // Admin Authentication
