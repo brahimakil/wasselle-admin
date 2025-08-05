@@ -23,12 +23,12 @@ module.exports = async function handler(req, res) {
     }
 
     // Handle API requests
-    const apiPath = req.headers['x-api-path'] || req.query.path;
+    const apiPath = req.headers['x-api-path'];
     
     if (!apiPath) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Missing API path. Use X-API-Path header or ?path= query parameter' 
+        message: 'Missing X-API-Path header' 
       });
     }
 
