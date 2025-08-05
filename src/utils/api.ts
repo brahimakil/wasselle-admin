@@ -399,8 +399,8 @@ export class ApiService {
 
     const token = localStorage.getItem('admin_token');
     
-    // Use direct API call for FormData to avoid proxy issues
-    const response = await fetch(`http://161.97.179.72/wasselle/api/user/register-with-documents.php`, {
+    // Use HTTPS for direct API call to avoid mixed content error
+    const response = await fetch(`https://161.97.179.72/wasselle/api/user/register-with-documents.php`, {
       method: 'POST',
       headers: {
         ...(token && { 'Authorization': `Bearer ${token}` })
