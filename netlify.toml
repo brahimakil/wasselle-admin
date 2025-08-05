@@ -2,7 +2,10 @@
   publish = "build"
   command = "CI=false npm run build"
 
+[functions]
+  directory = "netlify/functions"
+
 [[redirects]]
   from = "/api/*"
-  to = "/.netlify/functions/:splat"
+  to = "/.netlify/functions/proxy"
   status = 200 
