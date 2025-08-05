@@ -21,35 +21,53 @@ module.exports = async function handler(req, res) {
 
     const targetUrl = `http://161.97.179.72/wasselle/api/${apiPath}`;
     
-    // Only log essential info
     console.log(`🔄 ${req.method} ${apiPath}`);
 
-    // Prepare headers - copy from original request
     const headers = {};
-    
-    // Copy Content-Type if it exists
-    if (req.headers['content-type']) {
-      headers['Content-Type'] = req.headers['content-type'];
-    }
     
     // Copy Authorization header
     if (req.headers.authorization) {
       headers['Authorization'] = req.headers.authorization;
     }
 
-    // For non-FormData requests without Content-Type, default to JSON
-    if (!req.headers['content-type'] && req.method !== 'GET' && req.method !== 'HEAD') {
-      headers['Content-Type'] = 'application/json';
-    }
-
-    // Handle body
     let body = undefined;
+    
+    // Check if this is a FormData request
+    const contentType = req.headers['content-type'];
+    const isFormData = contentType && contentType.includes('multipart/form-data');
+    
     if (req.method !== 'GET' && req.method !== 'HEAD') {
-      if (req.body) {
-        // If it's FormData (multipart), pass as-is, otherwise stringify for JSON
-        if (req.headers['content-type'] && req.headers['content-type'].includes('multipart/form-data')) {
-          body = req.body;
-        } else {
+      if (isFormData) {
+        // For FormData, we need to reconstruct it from Vercel's parsed body
+        const FormData = require('form-data');
+        const formData = new FormData();
+        
+        // Vercel parses multipart data into req.body (fields) and req.files (files)
+        // Add text fields
+        if (req.body) {
+          Object.keys(req.body).forEach(key => {
+            formData.append(key, req.body[key]);
+          });
+        }
+        
+        // Add file fields - Vercel might put files in req.files
+        if (req.files) {
+          Object.keys(req.files).forEach(key => {
+            const file = req.files[key];
+            formData.append(key, file.data, {
+              filename: file.name,
+              contentType: file.mimetype
+            });
+          });
+        }
+        
+        body = formData;
+        // Let form-data set the correct headers with boundary
+        Object.assign(headers, formData.getHeaders());
+      } else {
+        // For JSON requests
+        headers['Content-Type'] = 'application/json';
+        if (req.body) {
           body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
         }
       }
