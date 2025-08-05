@@ -374,30 +374,59 @@ export class ApiService {
     face_photo?: File;
     passport_photo?: File;
   }): Promise<ApiResponse> {
-    const formData = new FormData();
     
-    // Add text fields
-    formData.append('name', userData.name);
-    formData.append('email', userData.email);
-    formData.append('password', userData.password);
-    formData.append('role', userData.role);
-    
-    if (userData.phone) formData.append('phone', userData.phone);
-    if (userData.dob) formData.append('dob', userData.dob);
-    if (userData.place_of_living) formData.append('place_of_living', userData.place_of_living);
-    
-    // Add file uploads
-    if (userData.face_photo) formData.append('face_photo', userData.face_photo);
-    if (userData.passport_photo) formData.append('passport_photo', userData.passport_photo);
+    // Helper function to convert file to base64
+    const fileToBase64 = (file: File): Promise<string> => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+          // Remove the "data:image/jpeg;base64," prefix
+          const base64 = (reader.result as string).split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = error => reject(error);
+      });
+    };
 
-    const token = localStorage.getItem('admin_token');
+    // Convert files to base64 if they exist
+    let facePhotoBase64 = '';
+    let facePhotoFilename = '';
+    let passportPhotoBase64 = '';
+    let passportPhotoFilename = '';
+
+    if (userData.face_photo) {
+      facePhotoBase64 = await fileToBase64(userData.face_photo);
+      facePhotoFilename = userData.face_photo.name;
+    }
+
+    if (userData.passport_photo) {
+      passportPhotoBase64 = await fileToBase64(userData.passport_photo);
+      passportPhotoFilename = userData.passport_photo.name;
+    }
+
+    // Create JSON payload
+    const jsonData = {
+      name: userData.name,
+      email: userData.email,
+      password: userData.password,
+      role: userData.role,
+      phone: userData.phone || '',
+      dob: userData.dob || '',
+      place_of_living: userData.place_of_living || '',
+      face_photo_base64: facePhotoBase64,
+      face_photo_filename: facePhotoFilename,
+      passport_photo_base64: passportPhotoBase64,
+      passport_photo_filename: passportPhotoFilename
+    };
+
     const response = await this.makeProxyRequest('user/register-with-documents.php', {
       method: 'POST',
       headers: {
-        ...(token && { 'Authorization': `Bearer ${token}` })
-        // Don't set Content-Type for FormData, let browser set it with boundary
+        'Content-Type': 'application/json',
+        ...this.getAuthHeaders()
       },
-      body: formData
+      body: JSON.stringify(jsonData)
     });
     
     return this.handleResponse(response);
