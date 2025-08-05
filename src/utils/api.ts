@@ -250,8 +250,8 @@ export class ApiService {
 
   // Helper method to make requests through proxy
   private static async makeProxyRequest(endpoint: string, options: RequestInit = {}): Promise<Response> {
-    // For Netlify, we call the proxy function directly
-    return fetch('/.netlify/functions/proxy', {
+    // For Vercel, we call the proxy function directly
+    return fetch('/api/proxy', {
       ...options,
       headers: {
         ...options.headers,
