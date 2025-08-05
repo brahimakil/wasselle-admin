@@ -398,7 +398,9 @@ export class ApiService {
     if (userData.passport_photo) formData.append('passport_photo', userData.passport_photo);
 
     const token = localStorage.getItem('admin_token');
-    const response = await this.makeProxyRequest('user/register-with-documents.php', {
+    
+    // Use direct API call for FormData to avoid proxy issues
+    const response = await fetch(`http://161.97.179.72/wasselle/api/user/register-with-documents.php`, {
       method: 'POST',
       headers: {
         ...(token && { 'Authorization': `Bearer ${token}` })
