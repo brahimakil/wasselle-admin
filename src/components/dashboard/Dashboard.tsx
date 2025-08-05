@@ -32,7 +32,6 @@ interface DashboardStats {
   totalCountries: number;
   
   // Notification Statistics
-  totalNotifications: number;
   unreadNotifications: number;
 }
 
@@ -53,13 +52,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onPageChange }) => {
     totalPlans: 0,
     activeSubscriptions: 0,
     totalCountries: 0,
-    totalNotifications: 0,
     unreadNotifications: 0
   });
   
   const [isLoading, setIsLoading] = useState(true);
   const [recentUsers, setRecentUsers] = useState<any[]>([]);
-  const [recentPayments, setRecentPayments] = useState<any[]>([]);
+  const [recentPayments, setRecentPayments] = useState<any[]>([]); // Add this back
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -71,90 +69,66 @@ const Dashboard: React.FC<DashboardProps> = ({ onPageChange }) => {
       setIsLoading(true);
       setError('');
       
-      // Fetch all statistics in parallel
+      // Reduce API calls to only essential ones
       const [
         allUsers,
-        drivers, 
-        riders,
-        verified,
-        banned,
-        pending,
         allPayments,
-        pendingPaymentsResp,
-        approvedPaymentsResp,
-        rejectedPaymentsResp,
         allPosts,
-        activePosts,
         plans,
-        countries,
-        notifications,
-        recentUsersResp,
-        recentPaymentsResp
+        unreadNotifications
       ] = await Promise.all([
-        ApiService.getUsers({}),
-        ApiService.getUsers({ role: 'driver' }),
-        ApiService.getUsers({ role: 'rider' }),
-        ApiService.getUsers({ is_verified: '1' }),
-        ApiService.getUsers({ is_banned: '1' }),
-        ApiService.getUsers({ is_verified: '0' }),
-        ApiService.getPayments({}),
-        ApiService.getPayments({ status: 'pending' }),
-        ApiService.getPayments({ status: 'approved' }),
-        ApiService.getPayments({ status: 'rejected' }),
-        ApiService.getPosts({}),
-        ApiService.getPosts({ is_active: 1 }),
+        ApiService.getUsers({ limit: 100 }), // Get more users to calculate stats
+        ApiService.getPayments({ limit: 50, status: 'approved' }), // Only get approved payments
+        ApiService.getPosts({ limit: 50 }), // Get recent posts
         ApiService.getPlans(),
-        ApiService.getCountries(),
-        ApiService.getNotifications({}),
-        ApiService.getUsers({ limit: 5 }),
-        ApiService.getPayments({ limit: 5 })
+        ApiService.getNotifications({ limit: 1, unread_only: true }) // Just unread count
       ]);
 
-      // Debug the posts response (you can remove this after confirming it works)
-      console.log('All Posts Response:', allPosts);
-      console.log('Active Posts Response:', activePosts);
-
-      // Count active subscriptions from all users
-      let activeSubsCount = 0;
-      if (allUsers.users) {
-        for (const user of allUsers.users) {
-          if (user.role === 'driver') {
-            try {
-              const userDetails = await ApiService.getUser(user.id);
-              if (userDetails.subscriptions) {
-                const activeSubs = userDetails.subscriptions.filter((sub: any) => sub.is_active === 1);
-                activeSubsCount += activeSubs.length;
-              }
-            } catch (err) {
-              // Skip if can't fetch user details
-            }
-          }
-        }
-      }
+      // Calculate stats from the fetched data instead of making separate API calls
+      const users = allUsers.users || [];
+      const payments = allPayments.payments || [];
+      const posts = allPosts.posts || [];
+      
+      // User stats
+      const drivers = users.filter(u => u.role === 'driver');
+      const riders = users.filter(u => u.role === 'rider');
+      const verified = users.filter(u => u.is_verified === 1);
+      const banned = users.filter(u => u.is_banned === 1);
+      const pending = users.filter(u => u.is_verified === 0 && u.role === 'driver');
+      
+      // Payment stats
+      const pendingPayments = payments.filter(p => p.status === 'pending');
+      const approvedPayments = payments.filter(p => p.status === 'approved');
+      const rejectedPayments = payments.filter(p => p.status === 'rejected');
+      
+      // Post stats
+      const activePosts = posts.filter(p => p.is_active === 1);
+      
+      // Active subscriptions count
+      const activeSubsCount = users.filter(u => u.current_subscription_id).length;
 
       setStats({
-        totalUsers: allUsers.pagination?.total_users || 0,
-        totalDrivers: drivers.pagination?.total_users || 0,
-        totalRiders: riders.pagination?.total_users || 0,
-        verifiedUsers: verified.pagination?.total_users || 0,
-        bannedUsers: banned.pagination?.total_users || 0,
-        pendingApprovals: pending.pagination?.total_users || 0,
-        totalPayments: allPayments.pagination?.total_payments || 0,
-        pendingPayments: pendingPaymentsResp.pagination?.total_payments || 0,
-        approvedPayments: approvedPaymentsResp.pagination?.total_payments || 0,
-        rejectedPayments: rejectedPaymentsResp.pagination?.total_payments || 0,
-        // Fixed: Posts API uses pagination.total, not pagination.total_posts
-        totalPosts: allPosts.pagination?.total || 0,
-        activePosts: activePosts.pagination?.total || 0,
+        totalUsers: users.length,
+        totalDrivers: drivers.length,
+        totalRiders: riders.length,
+        verifiedUsers: verified.length,
+        bannedUsers: banned.length,
+        pendingApprovals: pending.length,
+        totalPayments: payments.length,
+        pendingPayments: pendingPayments.length,
+        approvedPayments: approvedPayments.length,
+        rejectedPayments: rejectedPayments.length,
+        totalPosts: posts.length,
+        activePosts: activePosts.length,
         totalPlans: plans.plans?.length || 0,
         activeSubscriptions: activeSubsCount,
-        totalCountries: countries.countries?.length || 0,
-        totalNotifications: notifications.pagination?.total || 0,
-        unreadNotifications: notifications.unread_count || 0
+        totalCountries: 0,
+        unreadNotifications: unreadNotifications.unread_count || 0
       });
 
-      setRecentUsers(recentUsersResp.users || []);
-      setRecentPayments(recentPaymentsResp.payments || []);
+      // Set recent data
+      setRecentUsers(users.slice(0, 5));
+      setRecentPayments(payments.slice(0, 5)); // Add this line back
 
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -203,6 +177,56 @@ const Dashboard: React.FC<DashboardProps> = ({ onPageChange }) => {
         console.warn(`Unknown action: ${action}`);
         break;
     }
+  };
+
+  const renderRecentPayments = () => {
+    // Filter for only active payments (like in PaymentManagement.tsx)
+    const activePayments = recentPayments.filter(payment => 
+      payment.status === 'approved' && 
+      payment.payment_subscription_status === 'active'
+    );
+
+    if (activePayments.length === 0) {
+      return (
+        <div className="text-center py-8 text-gray-500">
+          <div className="text-4xl mb-2">💳</div>
+          <p>No active payments found</p>
+          <p className="text-xs mt-1">Only payments with active subscriptions are shown</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-3">
+        {activePayments.map((payment) => (
+          <div key={payment.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+            <div className="flex-1">
+              <p className="font-medium text-gray-900">{payment.driver_name || 'Unknown Driver'}</p>
+              <p className="text-sm text-gray-600">{payment.plan_name || 'Unknown Plan'}</p>
+              <p className="text-xs text-gray-500">
+                {payment.created_at ? new Date(payment.created_at).toLocaleDateString() : 'Unknown date'}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="font-semibold text-gray-900">${payment.amount || payment.price || '0.00'}</p>
+              <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                ✓ Active Plan
+              </span>
+            </div>
+          </div>
+        ))}
+        
+        {/* View All Link */}
+        <div className="pt-3 border-t border-gray-200">
+          <button
+            onClick={() => handleQuickAction('payments')}
+            className="w-full text-center text-sm text-blue-600 hover:text-blue-800 font-medium"
+          >
+            View All Payments →
+          </button>
+        </div>
+      </div>
+    );
   };
 
   const formatDate = (dateString: string) => {
@@ -418,7 +442,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onPageChange }) => {
               </svg>
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">{stats.totalNotifications}</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.unreadNotifications}</p>
               <p className="text-sm text-gray-600">Notifications</p>
               <p className="text-xs text-red-600">{stats.unreadNotifications} unread</p>
             </div>
@@ -568,29 +592,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onPageChange }) => {
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Payments</h3>
           <div className="space-y-4">
-            {recentPayments.length > 0 ? (
-              recentPayments.map((payment) => (
-                <div key={payment.id} className="flex items-center justify-between">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {payment.driver_name || 'Unknown Driver'}
-                    </p>
-                    <p className="text-sm text-gray-500 truncate">
-                      {payment.plan_name || 'Unknown Plan'}
-                    </p>
-                    <p className="text-xs text-gray-400">{formatDate(payment.created_at)}</p>
-                  </div>
-                  <div className="flex flex-col items-end space-y-1">
-                    <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(payment.status)}`}>
-                      {payment.status}
-                    </span>
-                    <span className="text-xs text-gray-500">${payment.amount || '0'}</span>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-500 text-center py-4">No recent payments</p>
-            )}
+            {renderRecentPayments()}
           </div>
         </div>
       </div>

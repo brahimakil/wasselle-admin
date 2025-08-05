@@ -24,3 +24,5 @@ yarn-debug.log*
 yarn-error.log*
 wasselledatabase.sql
 all apis.md
+
+.vercel

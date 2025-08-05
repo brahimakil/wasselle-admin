@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ApiService, User, Plan } from '../../utils/api';
+import ConfirmationModal from '../common/ConfirmationModal';
+import { useConfirmation } from '../../hooks/useConfirmation';
 
 const DriverManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -498,6 +500,8 @@ const DriverManagement: React.FC = () => {
       minute: '2-digit'
     });
   };
+
+  const { confirmationState, showConfirmation } = useConfirmation();
 
   return (
     <div className="space-y-6 fade-in">
@@ -1354,6 +1358,17 @@ const DriverManagement: React.FC = () => {
           </div>
         </div>
       )}
+      
+      <ConfirmationModal
+        isOpen={confirmationState.isOpen}
+        title={confirmationState.title}
+        message={confirmationState.message}
+        confirmText={confirmationState.confirmText}
+        cancelText={confirmationState.cancelText}
+        onConfirm={confirmationState.onConfirm}
+        onCancel={confirmationState.onCancel}
+        type={confirmationState.type}
+      />
     </div>
   );
 };
