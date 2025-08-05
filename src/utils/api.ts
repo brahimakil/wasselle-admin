@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://161.97.179.72/wasselle/api';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://161.97.179.72/wasselle/api';
 
 export interface ApiResponse<T = any> {
   success: boolean;
