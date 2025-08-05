@@ -1,0 +1,901 @@
+const API_BASE_URL = 'http://161.97.179.72/wasselle/api';
+
+export interface ApiResponse<T = any> {
+  success: boolean;
+  message?: string;
+  data?: T;
+  token?: string;
+  admin?: any;
+  user?: any;
+  users?: any[];
+  plans?: any[];
+  subscriptions?: any[];
+  payments?: any[];
+  posts?: Post[];
+  countries?: Country[];
+  notifications?: Notification[];
+  country?: Country; // Add this line
+  unread_count?: number;
+  plan?: any;
+  subscription_id?: number;
+  end_date?: string;
+  subscription_end_date?: string;
+  subscription_count?: number;
+  payment_id?: number;
+  deactivated_count?: number;
+  pagination?: {
+    current_page: number;
+    total_pages: number;
+    total_users?: number;
+    total_subscriptions?: number;
+    total_payments?: number;
+    total_posts?: number;
+    total?: number;
+    limit: number;
+    per_page?: number;
+  };
+  filters_applied?: any;
+}
+
+export interface Admin {
+  id: number;
+  name: string;
+  email: string;
+  created_at: string;
+}
+
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  phone?: string;
+  dob?: string;
+  place_of_living?: string;
+  face_photo?: string;
+  passport_photo?: string;
+  role: 'rider' | 'driver';
+  is_verified: number;
+  is_banned: number;
+  created_at: string;
+  country_name?: string;
+}
+
+export interface Plan {
+  id: number;
+  name: string;
+  description: string;
+  price: string;
+  max_posts: number;
+  duration_days: number;
+  created_at: string;
+  active_subscriptions?: number;
+  current_active_subscriptions?: number;
+}
+
+export interface Subscription {
+  id: number;
+  driver_id: number;
+  plan_id: number;
+  start_date: string;
+  end_date: string;
+  is_active: number;
+  driver_name: string;
+  driver_email: string;
+  plan_name: string;
+  price: string;
+  max_posts: number;
+  duration_days: number;
+  is_expired: number;
+}
+
+export interface Payment {
+  id: number;
+  driver_id: number;
+  plan_id: number;
+  transaction_id: string;
+  status: 'pending' | 'approved' | 'rejected';
+  admin_note?: string;
+  created_at: string;
+  updated_at: string;
+  driver_name: string;
+  driver_email: string;
+  plan_name: string;
+  price: string;
+  duration_days: number;
+  payment_subscription_status?: string;
+  subscription_id?: number;
+  subscription_active?: number;
+  subscription_start?: string;
+  subscription_end?: string;
+  active_plan_id?: number;
+}
+
+export interface Post {
+  id: number;
+  driver_id: number;
+  from_country: number;
+  to_country: number;
+  from_to_departure: string;
+  to_from_return?: string;
+  from_to_description?: string;
+  to_from_description?: string;
+  phone_visible: number;
+  is_active: number;
+  created_at: string;
+  driver_name: string;
+  driver_email: string;
+  driver_phone?: string;
+  from_country_name: string;
+  to_country_name: string;
+  subscription_end?: string;
+  has_active_subscription?: number;
+  driver_verified?: number;
+}
+
+export interface Country {
+  id: number;
+  name: string;
+}
+
+export interface Notification {
+  id: number;
+  user_id: number;
+  role: string;
+  message: string;
+  data: {
+    type: 'payment' | 'post' | 'plan_management' | 'payment_management' | 'post_management' | 'country_management' | 'custom';
+    // Driver action fields
+    payment_id?: number;
+    post_id?: number;
+    driver_name?: string;
+    plan_name?: string;
+    transaction_id?: string;
+    from_country?: string;
+    to_country?: string;
+    // Admin action fields
+    plan_id?: number;
+    admin_name?: string;
+    action?: string;
+    reason?: string;
+    // Additional fields for custom notifications and enhanced data
+    priority?: 'high' | 'medium' | 'low';
+    category?: string;
+    country_id?: number;
+    country_name?: string;
+    created_by_admin?: boolean;
+    admin_id?: string | number;
+    source?: string;
+    created_at?: string;
+    [key: string]: any; // Allow additional properties
+  };
+  is_read: number;
+  created_at: string;
+}
+
+export interface Rating {
+  id: number;
+  rating: number;
+  comment: string;
+  rater_name: string;
+  rater_email: string;
+  from_country: string;
+  to_country: string;
+  from_to_description: string;
+  created_at: string;
+}
+
+export interface DriverRatingStats {
+  average_rating: number;
+  total_ratings: number;
+  rating_breakdown: {
+    "5_star": number;
+    "4_star": number;
+    "3_star": number;
+    "2_star": number;
+    "1_star": number;
+  };
+}
+
+export interface DriverRatingsResponse {
+  success: boolean;
+  driver: {
+    id: number;
+    name: string;
+    email: string;
+  };
+  stats: DriverRatingStats;
+  ratings: Rating[];
+  pagination: {
+    current_page: number;
+    per_page: number;
+    total: number;
+    total_pages: number;
+  };
+}
+
+export class ApiService {
+  private static getAuthHeaders(): HeadersInit {
+    const token = localStorage.getItem('admin_token');
+    return {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` })
+    };
+  }
+
+  private static async handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
+    let data;
+    
+    try {
+      const text = await response.text();
+      if (!text) {
+        throw new Error('Empty response from server');
+      }
+      
+      try {
+        data = JSON.parse(text);
+      } catch (parseError) {
+        console.error('Server response:', text);
+        throw new Error(`Invalid JSON response: ${text.substring(0, 200)}...`);
+      }
+    } catch (error) {
+      throw new Error(`Failed to read response: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+    
+    if (!response.ok) {
+      throw new Error(data?.message || `HTTP error! status: ${response.status}`);
+    }
+    
+    return data;
+  }
+
+  // Admin Authentication
+  static async adminLogin(email: string, password: string): Promise<ApiResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/login.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    
+    const result = await this.handleResponse(response);
+    
+    if (result.success && result.token) {
+      localStorage.setItem('admin_token', result.token);
+      localStorage.setItem('admin_user', JSON.stringify(result.admin));
+    }
+    
+    return result;
+  }
+
+  static async adminRegister(name: string, email: string, password: string): Promise<ApiResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/register.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, password })
+    });
+    
+    const result = await this.handleResponse(response);
+    
+    if (result.success && result.token) {
+      localStorage.setItem('admin_token', result.token);
+      localStorage.setItem('admin_user', JSON.stringify(result.admin));
+    }
+    
+    return result;
+  }
+
+  static adminLogout(): void {
+    localStorage.removeItem('admin_token');
+    localStorage.removeItem('admin_user');
+  }
+
+  static isAdminAuthenticated(): boolean {
+    return !!localStorage.getItem('admin_token');
+  }
+
+  static getAdminData(): Admin | null {
+    const adminData = localStorage.getItem('admin_user');
+    return adminData ? JSON.parse(adminData) : null;
+  }
+
+  // User Management
+  static async getUsers(params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    role?: string;
+    is_verified?: string;
+    is_banned?: string;
+  } = {}): Promise<ApiResponse> {
+    const queryParams = new URLSearchParams();
+    
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== '') {
+        queryParams.append(key, String(value));
+      }
+    });
+
+    const response = await fetch(`${API_BASE_URL}/admin/users/list.php?${queryParams}`, {
+      headers: this.getAuthHeaders()
+    });
+    
+    return this.handleResponse(response);
+  }
+
+  static async getUser(id: number): Promise<ApiResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/users/get.php?id=${id}`, {
+      headers: this.getAuthHeaders()
+    });
+    
+    return this.handleResponse(response);
+  }
+
+  static async updateUser(userData: Partial<User> & { id: number }): Promise<ApiResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/users/update.php`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(userData)
+    });
+    
+    return this.handleResponse(response);
+  }
+
+  static async deleteUser(id: number): Promise<ApiResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/users/delete.php`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify({ id })
+    });
+    
+    return this.handleResponse(response);
+  }
+
+  // Enhanced User Management - Create new users
+  static async createUser(userData: {
+    name: string;
+    email: string;
+    password: string;
+    role: 'driver' | 'rider';
+    phone?: string;
+    dob?: string;
+    place_of_living?: string;
+    face_photo?: File;
+    passport_photo?: File;
+  }): Promise<ApiResponse> {
+    const formData = new FormData();
+    
+    // Add text fields
+    formData.append('name', userData.name);
+    formData.append('email', userData.email);
+    formData.append('password', userData.password);
+    formData.append('role', userData.role);
+    
+    if (userData.phone) formData.append('phone', userData.phone);
+    if (userData.dob) formData.append('dob', userData.dob);
+    if (userData.place_of_living) formData.append('place_of_living', userData.place_of_living);
+    
+    // Add file uploads
+    if (userData.face_photo) formData.append('face_photo', userData.face_photo);
+    if (userData.passport_photo) formData.append('passport_photo', userData.passport_photo);
+
+    const token = localStorage.getItem('admin_token');
+    const response = await fetch(`${API_BASE_URL}/user/register-with-documents.php`, {
+      method: 'POST',
+      headers: {
+        ...(token && { 'Authorization': `Bearer ${token}` })
+        // Don't set Content-Type for FormData, let browser set it with boundary
+      },
+      body: formData
+    });
+    
+    return this.handleResponse(response);
+  }
+
+  // Plan Management
+  static async getPlans(): Promise<ApiResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/plans/list.php`, {
+      headers: this.getAuthHeaders()
+    });
+    
+    return this.handleResponse(response);
+  }
+
+  static async createPlan(planData: {
+    name: string;
+    description: string;
+    price: number;
+    max_posts: number;
+    duration_days: number;
+  }): Promise<ApiResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/plans/create.php`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(planData)
+    });
+    
+    return this.handleResponse(response);
+  }
+
+  static async updatePlan(planData: {
+    id: number;
+    name?: string;
+    description?: string;
+    price?: number;
+    max_posts?: number;
+    duration_days?: number;
+  }): Promise<ApiResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/plans/update.php`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(planData)
+    });
+    
+    return this.handleResponse(response);
+  }
+
+  static async deletePlan(id: number): Promise<ApiResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/plans/delete.php`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify({ id })
+    });
+    
+    return this.handleResponse(response);
+  }
+
+  // Subscription Management
+  static async getSubscriptions(params: {
+    page?: number;
+    limit?: number;
+    plan_id?: number;
+    is_active?: string;
+  } = {}): Promise<ApiResponse> {
+    const queryParams = new URLSearchParams();
+    
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== '') {
+        queryParams.append(key, String(value));
+      }
+    });
+
+    const response = await fetch(`${API_BASE_URL}/admin/subscriptions/list.php?${queryParams}`, {
+      headers: this.getAuthHeaders()
+    });
+    
+    return this.handleResponse(response);
+  }
+
+  static async createSubscription(subscriptionData: {
+    driver_id: number;
+    plan_id: number;
+    start_date: string;
+  }): Promise<ApiResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/subscriptions/create.php`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(subscriptionData)
+    });
+    
+    return this.handleResponse(response);
+  }
+
+  // Remove/deactivate subscription
+  static async removeSubscription(subscription_id: number): Promise<ApiResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/subscriptions/remove.php`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify({ subscription_id })
+    });
+    
+    return this.handleResponse(response);
+  }
+
+  // Remove the old assignDriverToPlan method that auto-verified
+  // Keep only the subscription creation without verification
+  static async assignDriverToPlan(driverData: {
+    driver_id: number;
+    plan_id: number;
+    start_date?: string;
+  }): Promise<ApiResponse> {
+    const subscriptionData = {
+      driver_id: driverData.driver_id,
+      plan_id: driverData.plan_id,
+      start_date: driverData.start_date || new Date().toISOString().split('T')[0]
+    };
+
+    console.log('Creating subscription with data:', subscriptionData);
+
+    const response = await fetch(`${API_BASE_URL}/admin/subscriptions/create.php`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(subscriptionData)
+    });
+    
+    console.log('Raw response status:', response.status);
+    
+    const result = await this.handleResponse(response);
+    console.log('Parsed response:', result);
+    
+    return result;
+  }
+
+  // Get driver subscriptions
+  static async getDriverSubscriptions(driver_id: number): Promise<ApiResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/users/get.php?id=${driver_id}`, {
+      headers: this.getAuthHeaders()
+    });
+    
+    return this.handleResponse(response);
+  }
+
+  // Payment Management
+  static async getPayments(params: {
+    page?: number;
+    limit?: number;
+    status?: string;
+  } = {}): Promise<ApiResponse> {
+    const queryParams = new URLSearchParams();
+    
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== '') {
+        queryParams.append(key, String(value));
+      }
+    });
+
+    const response = await fetch(`${API_BASE_URL}/admin/payments/list.php?${queryParams}`, {
+      headers: this.getAuthHeaders()
+    });
+    
+    return this.handleResponse(response);
+  }
+
+  static async approvePayment(payment_id: number, admin_note?: string): Promise<ApiResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/payments/approve.php`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify({ payment_id, admin_note })
+    });
+    
+    return this.handleResponse(response);
+  }
+
+  static async rejectPayment(payment_id: number, admin_note: string): Promise<ApiResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/payments/reject.php`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify({ payment_id, admin_note })
+    });
+    
+    return this.handleResponse(response);
+  }
+
+  // Manual payment creation by admin
+  static async createPayment(paymentData: {
+    driver_id: number;
+    plan_id: number;
+    transaction_id: string;
+    status?: 'pending' | 'approved' | 'rejected';
+    admin_note?: string;
+  }): Promise<ApiResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/payments/create.php`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify({
+        ...paymentData,
+        status: paymentData.status || 'pending'
+      })
+    });
+    
+    return this.handleResponse(response);
+  }
+
+  // Delete payment record completely
+  static async deletePayment(paymentId: number): Promise<ApiResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/payments/delete.php`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify({ payment_id: paymentId })
+    });
+    
+    return this.handleResponse(response);
+  }
+
+  // Get payments for a specific driver (to find payments to delete)
+  static async getDriverPayments(driverId: number): Promise<ApiResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/payments/list.php?driver_id=${driverId}&limit=100`, {
+      headers: this.getAuthHeaders()
+    });
+    
+    return this.handleResponse(response);
+  }
+
+  // Deactivate all previous payments and subscriptions for a driver when switching plans
+  static async deactivateDriverPreviousPlans(driver_id: number, exclude_payment_id?: number): Promise<{
+    success: boolean;
+    deactivated_payments: number;
+    deactivated_subscriptions: number;
+    errors: string[];
+  }> {
+    const results = {
+      success: true,
+      deactivated_payments: 0,
+      deactivated_subscriptions: 0,
+      errors: [] as string[]
+    };
+
+    try {
+      // Step 1: Get all payments for this driver
+      const paymentsResponse = await this.getDriverPayments(driver_id);
+      
+      if (paymentsResponse.success && paymentsResponse.payments) {
+        // Step 2: Reject all approved payments (except the new one we're creating)
+        for (const payment of paymentsResponse.payments) {
+          if (payment.status === 'approved' && payment.id !== exclude_payment_id) {
+            try {
+              await this.rejectPayment(payment.id, 'Automatically deactivated due to plan change');
+              results.deactivated_payments++;
+              console.log(`Deactivated payment ${payment.id} for plan: ${payment.plan_name}`);
+            } catch (err) {
+              results.errors.push(`Failed to deactivate payment ${payment.id}: ${err}`);
+            }
+          }
+        }
+      }
+
+      // Step 3: Get driver details to find active subscriptions
+      const driverResponse = await this.getUser(driver_id);
+      
+      if (driverResponse.success && driverResponse.subscriptions) {
+        // Step 4: Deactivate all active subscriptions
+        for (const subscription of driverResponse.subscriptions) {
+          if (subscription.is_active === 1) {
+            try {
+              await this.removeSubscription(subscription.id);
+              results.deactivated_subscriptions++;
+              console.log(`Deactivated subscription ${subscription.id} for plan: ${subscription.plan_name}`);
+            } catch (err) {
+              results.errors.push(`Failed to deactivate subscription ${subscription.id}: ${err}`);
+            }
+          }
+        }
+      }
+
+      if (results.errors.length > 0) {
+        results.success = false;
+      }
+
+    } catch (err) {
+      results.success = false;
+      results.errors.push(`Failed to deactivate previous plans: ${err}`);
+    }
+
+    return results;
+  }
+
+  // Alternative: Update specific payment status 
+  static async updatePaymentStatus(payment_id: number, status: 'pending' | 'approved' | 'rejected'): Promise<ApiResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/payments/update-status.php`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify({ 
+        payment_id,
+        status 
+      })
+    });
+    
+    return this.handleResponse(response);
+  }
+
+  // File/Image access
+  static getImageUrl(path: string): string {
+    return `${API_BASE_URL}/uploads/image.php?path=${encodeURIComponent(path)}`;
+  }
+
+  // Ensure only one active plan per driver (cleanup function)
+  static async enforceOnePlanPerDriver(driver_id: number): Promise<ApiResponse> {
+    try {
+      // Get driver's current subscriptions
+      const driverResponse = await this.getUser(driver_id);
+      
+      if (!driverResponse.success || !driverResponse.subscriptions) {
+        return { success: true, message: 'No subscriptions to check' };
+      }
+
+      const subscriptions = driverResponse.subscriptions;
+      const activeSubscriptions = subscriptions.filter((sub: any) => sub.is_active === 1);
+
+      if (activeSubscriptions.length <= 1) {
+        return { success: true, message: 'Driver has 0 or 1 active plans (correct)' };
+      }
+
+      // If multiple active subscriptions, keep the newest one and deactivate others
+      console.warn(`Driver ${driver_id} has ${activeSubscriptions.length} active plans! Fixing...`);
+      
+      // Sort by start_date, keep the newest
+      activeSubscriptions.sort((a: any, b: any) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime());
+      const keepSubscription = activeSubscriptions[0];
+      const deactivateSubscriptions = activeSubscriptions.slice(1);
+
+      console.log(`Keeping newest subscription: ${keepSubscription.plan_name} (ID: ${keepSubscription.id})`);
+
+      // Deactivate older subscriptions
+      let deactivatedCount = 0;
+      for (const sub of deactivateSubscriptions) {
+        try {
+          await this.removeSubscription(sub.id);
+          console.log(`Deactivated older subscription: ${sub.plan_name} (ID: ${sub.id})`);
+          deactivatedCount++;
+        } catch (err) {
+          console.error(`Failed to deactivate subscription ${sub.id}:`, err);
+        }
+      }
+
+      return { 
+        success: true, 
+        message: `Fixed multiple active plans. Kept 1, deactivated ${deactivatedCount}`,
+        deactivated_count: deactivatedCount
+      };
+
+    } catch (err) {
+      console.error('Failed to enforce one plan per driver:', err);
+      return { success: false, message: `Failed to enforce one plan rule: ${err}` };
+    }
+  }
+
+  // Posts Management
+  static async getPosts(params: {
+    page?: number;
+    limit?: number;
+    driver_id?: number;
+    country?: number;
+    is_active?: number;
+  } = {}): Promise<ApiResponse> {
+    const queryParams = new URLSearchParams();
+    if (params.page) queryParams.append('page', params.page.toString());
+    if (params.limit) queryParams.append('limit', params.limit.toString());
+    if (params.driver_id) queryParams.append('driver_id', params.driver_id.toString());
+    if (params.country) queryParams.append('country', params.country.toString());
+    if (params.is_active !== undefined) queryParams.append('is_active', params.is_active.toString());
+
+    const response = await fetch(`${API_BASE_URL}/admin/posts/list.php?${queryParams}`, {
+      headers: this.getAuthHeaders()
+    });
+    return this.handleResponse(response);
+  }
+
+  static async deletePost(postId: number): Promise<ApiResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/posts/delete.php?id=${postId}`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders()
+    });
+    return this.handleResponse(response);
+  }
+
+  static async updatePost(postId: number, postData: {
+    from_country?: number;
+    to_country?: number;
+    from_to_departure?: string;
+    to_from_return?: string;
+    from_to_description?: string;
+    to_from_description?: string;
+    phone_visible?: number;
+    is_active?: number;
+  }): Promise<ApiResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/posts/update.php?id=${postId}`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(postData)
+    });
+    return this.handleResponse(response);
+  }
+
+  // Get countries for filtering/display (Public endpoint - no auth required)
+  static async getCountries(): Promise<ApiResponse> {
+    const response = await fetch(`${API_BASE_URL}/countries/list.php`);
+    return this.handleResponse(response);
+  }
+
+  // Admin Countries Management
+  static async getAdminCountries(params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  } = {}): Promise<ApiResponse> {
+    const queryParams = new URLSearchParams();
+    if (params.page) queryParams.append('page', params.page.toString());
+    if (params.limit) queryParams.append('limit', params.limit.toString());
+    if (params.search) queryParams.append('search', params.search);
+
+    const response = await fetch(`${API_BASE_URL}/admin/countries/list.php?${queryParams}`, {
+      headers: this.getAuthHeaders()
+    });
+    return this.handleResponse(response);
+  }
+
+  static async createCountry(name: string): Promise<ApiResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/countries/create.php`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify({ name })
+    });
+    return this.handleResponse(response);
+  }
+
+  static async updateCountry(id: number, name: string): Promise<ApiResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/countries/update.php`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify({ id, name })
+    });
+    return this.handleResponse(response);
+  }
+
+  static async deleteCountry(id: number): Promise<ApiResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/countries/delete.php?id=${id}`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders()
+    });
+    return this.handleResponse(response);
+  }
+
+  // Admin Notifications Management
+  static async getNotifications(params: {
+    page?: number;
+    limit?: number;
+    unread_only?: boolean;
+  } = {}): Promise<ApiResponse> {
+    const queryParams = new URLSearchParams();
+    if (params.page) queryParams.append('page', params.page.toString());
+    if (params.limit) queryParams.append('limit', params.limit.toString());
+    if (params.unread_only) queryParams.append('unread_only', 'true');
+
+    const response = await fetch(`${API_BASE_URL}/admin/notifications/list.php?${queryParams}`, {
+      headers: this.getAuthHeaders()
+    });
+    return this.handleResponse(response);
+  }
+
+  static async markNotificationAsRead(notificationId?: number): Promise<ApiResponse> {
+    const body = notificationId ? { notification_id: notificationId } : {};
+    
+    const response = await fetch(`${API_BASE_URL}/admin/notifications/mark-read.php`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(body)
+    });
+    return this.handleResponse(response);
+  }
+
+  // Create custom notifications (for testing or manual announcements only)
+  // Note: Admin action notifications are automatically created by the backend
+  static async createAdminNotification(type: string, message: string, data: any): Promise<ApiResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/notifications/create.php`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify({
+        type,
+        message,
+        data
+      })
+    });
+    return this.handleResponse(response);
+  }
+
+  // Driver Ratings
+  static async getDriverRatings(driverId: number, params: {
+    page?: number;
+    limit?: number;
+  } = {}): Promise<DriverRatingsResponse> {
+    const queryParams = new URLSearchParams({
+      driver_id: driverId.toString(),
+      page: (params.page || 1).toString(),
+      limit: (params.limit || 20).toString()
+    });
+
+    const response = await fetch(`${API_BASE_URL}/admin/drivers/ratings.php?${queryParams}`, {
+      headers: this.getAuthHeaders()
+    });
+    
+    const result = await this.handleResponse(response);
+    return result as unknown as DriverRatingsResponse;
+  }
+}
