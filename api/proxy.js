@@ -24,26 +24,30 @@ module.exports = async function handler(req, res) {
     // Only log essential info
     console.log(`🔄 ${req.method} ${apiPath}`);
 
+    // Prepare headers - copy from original request
     const headers = {};
-
-    // Only set Content-Type for JSON requests, let FormData set its own
-    const contentType = req.headers['content-type'];
-    if (contentType && !contentType.includes('multipart/form-data')) {
-      headers['Content-Type'] = contentType;
-    } else if (!contentType && req.method !== 'GET' && req.method !== 'HEAD') {
-      // Default to JSON for non-GET requests without Content-Type
-      headers['Content-Type'] = 'application/json';
+    
+    // Copy Content-Type if it exists
+    if (req.headers['content-type']) {
+      headers['Content-Type'] = req.headers['content-type'];
     }
-
+    
+    // Copy Authorization header
     if (req.headers.authorization) {
       headers['Authorization'] = req.headers.authorization;
     }
 
+    // For non-FormData requests without Content-Type, default to JSON
+    if (!req.headers['content-type'] && req.method !== 'GET' && req.method !== 'HEAD') {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    // Handle body
     let body = undefined;
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       if (req.body) {
-        // For FormData, pass the body as-is; for JSON, stringify if needed
-        if (contentType && contentType.includes('multipart/form-data')) {
+        // If it's FormData (multipart), pass as-is, otherwise stringify for JSON
+        if (req.headers['content-type'] && req.headers['content-type'].includes('multipart/form-data')) {
           body = req.body;
         } else {
           body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
