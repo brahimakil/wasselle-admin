@@ -21,55 +21,20 @@ module.exports = async function handler(req, res) {
 
     const targetUrl = `http://161.97.179.72/wasselle/api/${apiPath}`;
     
-    console.log(`🔄 ${req.method} ${apiPath}`);
+    console.log(`🔄 ${req.method} ${apiPath}`, { body: req.body, files: req.files });
 
-    const headers = {};
+    const headers = {
+      'Content-Type': 'application/json'
+    };
     
-    // Copy Authorization header
     if (req.headers.authorization) {
       headers['Authorization'] = req.headers.authorization;
     }
 
     let body = undefined;
-    
-    // Check if this is a FormData request
-    const contentType = req.headers['content-type'];
-    const isFormData = contentType && contentType.includes('multipart/form-data');
-    
     if (req.method !== 'GET' && req.method !== 'HEAD') {
-      if (isFormData) {
-        // For FormData, we need to reconstruct it from Vercel's parsed body
-        const FormData = require('form-data');
-        const formData = new FormData();
-        
-        // Vercel parses multipart data into req.body (fields) and req.files (files)
-        // Add text fields
-        if (req.body) {
-          Object.keys(req.body).forEach(key => {
-            formData.append(key, req.body[key]);
-          });
-        }
-        
-        // Add file fields - Vercel might put files in req.files
-        if (req.files) {
-          Object.keys(req.files).forEach(key => {
-            const file = req.files[key];
-            formData.append(key, file.data, {
-              filename: file.name,
-              contentType: file.mimetype
-            });
-          });
-        }
-        
-        body = formData;
-        // Let form-data set the correct headers with boundary
-        Object.assign(headers, formData.getHeaders());
-      } else {
-        // For JSON requests
-        headers['Content-Type'] = 'application/json';
-        if (req.body) {
-          body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
-        }
+      if (req.body) {
+        body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
       }
     }
 
