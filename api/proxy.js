@@ -24,9 +24,16 @@ module.exports = async function handler(req, res) {
     // Only log essential info
     console.log(`🔄 ${req.method} ${apiPath}`);
 
-    const headers = {
-      'Content-Type': 'application/json',
-    };
+    const headers = {};
+
+    // Only set Content-Type for JSON requests, let FormData set its own
+    const contentType = req.headers['content-type'];
+    if (contentType && !contentType.includes('multipart/form-data')) {
+      headers['Content-Type'] = contentType;
+    } else if (!contentType && req.method !== 'GET' && req.method !== 'HEAD') {
+      // Default to JSON for non-GET requests without Content-Type
+      headers['Content-Type'] = 'application/json';
+    }
 
     if (req.headers.authorization) {
       headers['Authorization'] = req.headers.authorization;
@@ -35,7 +42,12 @@ module.exports = async function handler(req, res) {
     let body = undefined;
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       if (req.body) {
-        body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+        // For FormData, pass the body as-is; for JSON, stringify if needed
+        if (contentType && contentType.includes('multipart/form-data')) {
+          body = req.body;
+        } else {
+          body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+        }
       }
     }
 
