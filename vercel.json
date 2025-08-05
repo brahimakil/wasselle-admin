@@ -9,5 +9,8 @@
       "source": "/api/(.*)",
       "destination": "/api/$1"
     }
-  ]
+  ],
+  "env": {
+    "REACT_APP_API_BASE_URL": "/api"
+  }
 } 
