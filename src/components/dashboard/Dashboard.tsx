@@ -110,6 +110,28 @@ const Dashboard: React.FC<DashboardProps> = ({ onPageChange }) => {
       const allSubscriptions = subscriptions.subscriptions || [];
       const activeSubsCount = allSubscriptions.filter(sub => sub.is_active === 1).length;
 
+      // Update the stats interface to include account status counts
+      interface DashboardStats {
+        totalUsers: number;
+        totalDrivers: number;
+        totalRiders: number;
+        verifiedDrivers: number;
+        unverifiedDrivers: number;
+        bannedUsers: number;
+        pendingApproval: number;  // Add this line
+        activeUsers: number;      // Add this line
+        totalPlans: number;
+        activeSubscriptions: number;
+        totalPosts: number;
+        activePosts: number;
+        totalCountries: number;
+        unreadNotifications: number;
+      }
+
+      // Update the stats calculation in fetchDashboardData
+      const pendingUsers = users.filter(u => u.account_status === 'pending');
+      const activeUsers = users.filter(u => u.account_status === 'active');
+
       setStats({
         totalUsers: users.length,
         totalDrivers: drivers.length,
@@ -124,10 +146,48 @@ const Dashboard: React.FC<DashboardProps> = ({ onPageChange }) => {
         totalPosts: posts.length,
         activePosts: activePosts.length,
         totalPlans: plans.plans?.length || 0,
-        activeSubscriptions: activeSubsCount,  // Use the corrected count
+        activeSubscriptions: activeSubsCount,
         totalCountries: 0,
         unreadNotifications: unreadNotifications.unread_count || 0
       });
+
+      // Add new dashboard cards for account status
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Existing cards... */}
+        
+        {/* Account Status Cards */}
+        <div className="admin-card p-6 hover:shadow-lg transition-shadow duration-200">
+        <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-500">Pending Approval</p>
+              <p className="text-2xl font-semibold text-gray-900">{stats.pendingApproval}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="admin-card p-6 hover:shadow-lg transition-shadow duration-200">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-500">Active Users</p>
+              <p className="text-2xl font-semibold text-gray-900">{stats.activeUsers}</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
       // Set recent data
       setRecentUsers(users.slice(0, 5));

@@ -11,7 +11,8 @@ const DriverManagement: React.FC = () => {
   const [filters, setFilters] = useState({
     search: '',
     is_verified: '',
-    is_banned: ''
+    is_banned: '',
+    account_status: ''
   });
   const [pagination, setPagination] = useState({
     current_page: 1,
@@ -1111,8 +1112,8 @@ const DriverManagement: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-500">Account Status</label>
-                    <span className={`inline-flex px-2 py-1 text-xs rounded-full ${viewUser.is_banned ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                      {viewUser.is_banned ? 'Banned' : 'Active'}
+                    <span className={`inline-flex px-2 py-1 text-xs rounded-full ${viewUser.account_status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
+                      {viewUser.account_status}
                     </span>
                   </div>
                   <div>

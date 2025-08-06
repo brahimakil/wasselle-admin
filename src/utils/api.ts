@@ -56,6 +56,7 @@ export interface User {
   role: 'rider' | 'driver';
   is_verified: number;
   is_banned: number;
+  account_status: 'pending' | 'active';  // Add this line
   created_at: string;
   country_name?: string;
 }
@@ -317,6 +318,7 @@ export class ApiService {
     role?: string;
     is_verified?: string;
     is_banned?: string;
+    account_status?: string;  // Add this line
   } = {}): Promise<ApiResponse> {
     const queryParams = new URLSearchParams();
     
@@ -421,6 +423,76 @@ export class ApiService {
     };
 
     const response = await this.makeProxyRequest('user/register-with-documents.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.getAuthHeaders()
+      },
+      body: JSON.stringify(jsonData)
+    });
+    
+    return this.handleResponse(response);
+  }
+
+  // Add new method for admin to create users with active status
+  static async createUserByAdmin(userData: {
+    name: string;
+    email: string;
+    password: string;
+    role: 'driver' | 'rider';
+    phone?: string;
+    dob?: string;
+    place_of_living?: string;
+    face_photo?: File;
+    passport_photo?: File;
+  }): Promise<ApiResponse> {
+    
+    // Helper function to convert file to base64
+    const fileToBase64 = (file: File): Promise<string> => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+          // Remove the "data:image/jpeg;base64," prefix
+          const base64 = (reader.result as string).split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = error => reject(error);
+      });
+    };
+
+    // Convert files to base64 if they exist
+    let facePhotoBase64 = '';
+    let facePhotoFilename = '';
+    let passportPhotoBase64 = '';
+    let passportPhotoFilename = '';
+
+    if (userData.face_photo) {
+      facePhotoBase64 = await fileToBase64(userData.face_photo);
+      facePhotoFilename = userData.face_photo.name;
+    }
+
+    if (userData.passport_photo) {
+      passportPhotoBase64 = await fileToBase64(userData.passport_photo);
+      passportPhotoFilename = userData.passport_photo.name;
+    }
+
+    // Create JSON payload
+    const jsonData = {
+      name: userData.name,
+      email: userData.email,
+      password: userData.password,
+      role: userData.role,
+      phone: userData.phone || '',
+      dob: userData.dob || '',
+      place_of_living: userData.place_of_living || '',
+      face_photo_base64: facePhotoBase64,
+      face_photo_filename: facePhotoFilename,
+      passport_photo_base64: passportPhotoBase64,
+      passport_photo_filename: passportPhotoFilename
+    };
+
+    const response = await this.makeProxyRequest('admin/users/create.php', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
