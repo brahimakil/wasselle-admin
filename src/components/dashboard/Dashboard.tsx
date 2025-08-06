@@ -69,19 +69,21 @@ const Dashboard: React.FC<DashboardProps> = ({ onPageChange }) => {
       setIsLoading(true);
       setError('');
       
-      // Reduce API calls to only essential ones
+      // Get subscription data to properly count active subscriptions
       const [
         allUsers,
         allPayments,
         allPosts,
         plans,
-        unreadNotifications
+        unreadNotifications,
+        subscriptions  // This is declared
       ] = await Promise.all([
-        ApiService.getUsers({ limit: 100 }), // Get more users to calculate stats
-        ApiService.getPayments({ limit: 50, status: 'approved' }), // Only get approved payments
-        ApiService.getPosts({ limit: 50 }), // Get recent posts
+        ApiService.getUsers({ limit: 100 }),
+        ApiService.getPayments({ limit: 50, status: 'approved' }),
+        ApiService.getPosts({ limit: 50 }),
         ApiService.getPlans(),
-        ApiService.getNotifications({ limit: 1, unread_only: true }) // Just unread count
+        ApiService.getNotifications({ limit: 1, unread_only: true }),
+        ApiService.getSubscriptions()  // Make sure this method exists and is called
       ]);
 
       // Calculate stats from the fetched data instead of making separate API calls
@@ -104,8 +106,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onPageChange }) => {
       // Post stats
       const activePosts = posts.filter(p => p.is_active === 1);
       
-      // Active subscriptions count
-      const activeSubsCount = users.filter(u => u.current_subscription_id).length;
+      // FIX: Properly calculate active subscriptions
+      const allSubscriptions = subscriptions.subscriptions || [];
+      const activeSubsCount = allSubscriptions.filter(sub => sub.is_active === 1).length;
 
       setStats({
         totalUsers: users.length,
@@ -121,7 +124,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onPageChange }) => {
         totalPosts: posts.length,
         activePosts: activePosts.length,
         totalPlans: plans.plans?.length || 0,
-        activeSubscriptions: activeSubsCount,
+        activeSubscriptions: activeSubsCount,  // Use the corrected count
         totalCountries: 0,
         unreadNotifications: unreadNotifications.unread_count || 0
       });

@@ -1,4 +1,8 @@
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '/api';
+// Update the API_BASE_URL to handle both localhost and production
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 
+  (window.location.hostname === 'localhost' ? 
+    'http://161.97.179.72/wasselle/api' : 
+    '/api');
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -250,14 +254,27 @@ export class ApiService {
 
   // Helper method to make requests through proxy
   private static async makeProxyRequest(endpoint: string, options: RequestInit = {}): Promise<Response> {
-    // For Vercel, we call the proxy function directly
-    return fetch('/api/proxy', {
-      ...options,
-      headers: {
-        ...options.headers,
-        'X-API-Path': endpoint,
-      },
-    });
+    const isLocalhost = window.location.hostname === 'localhost';
+    
+    if (isLocalhost) {
+      // For localhost, make direct API calls
+      return fetch(`http://161.97.179.72/wasselle/api/${endpoint}`, {
+        ...options,
+        headers: {
+          ...options.headers,
+          'Content-Type': 'application/json',
+        },
+      });
+    } else {
+      // For production, use Vercel proxy
+      return fetch('/api/proxy', {
+        ...options,
+        headers: {
+          ...options.headers,
+          'X-API-Path': endpoint,
+        },
+      });
+    }
   }
 
   // Admin Authentication
