@@ -369,7 +369,7 @@ const RiderManagement: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex flex-col space-y-2">
-                        {/* ADD Account Status Controls (first priority) */}
+                        {/* Account Status Controls (first priority) */}
                         {user.account_status === 'pending' ? (
                           <button
                             onClick={() => handleAccountStatusUpdate(user.id, 'active')}
@@ -386,10 +386,17 @@ const RiderManagement: React.FC = () => {
                           </button>
                         )}
                         
-                        {/* Keep existing controls, but only show for active accounts */}
+                        {/* MOVED: View Details - Always available */}
+                        <button
+                          onClick={() => handleViewUser(user)}
+                          className="text-gray-600 hover:text-gray-900 text-xs"
+                        >
+                          View Details
+                        </button>
+                        
+                        {/* Ban controls - only show for active accounts */}
                         {user.account_status === 'active' && (
                           <>
-                            {/* Existing ban controls */}
                             {user.is_banned === 1 ? (
                               <button
                                 onClick={() => handleBanUpdate(user.id, 0)}
@@ -405,14 +412,6 @@ const RiderManagement: React.FC = () => {
                                 Ban
                               </button>
                             )}
-                            
-                            {/* Existing view action */}
-                            <button
-                              onClick={() => handleViewUser(user)}
-                              className="text-gray-600 hover:text-gray-900 text-xs"
-                            >
-                              View Details
-                            </button>
                           </>
                         )}
                       </div>
