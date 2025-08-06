@@ -682,12 +682,22 @@ const RiderManagement: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-500">Role</label>
                     <p className="text-sm text-gray-900 capitalize">{viewUser.role}</p>
                   </div>
+                  
+                  {/* FIXED: Show all statuses clearly */}
                   <div>
                     <label className="block text-sm font-medium text-gray-500">Account Status</label>
-                    <span className={`inline-flex px-2 py-1 text-xs rounded-full ${viewUser.is_banned ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
-                      {viewUser.is_banned ? 'Banned' : 'Active Rider'}
+                    <span className={`inline-flex px-2 py-1 text-xs rounded-full ${viewUser.account_status === 'active' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                      {viewUser.account_status === 'active' ? '✅ Active' : '⏳ Pending Approval'}
                     </span>
                   </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500">Ban Status</label>
+                    <span className={`inline-flex px-2 py-1 text-xs rounded-full ${viewUser.is_banned === 1 ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+                      {viewUser.is_banned === 1 ? '🚫 Banned' : '✅ Not Banned'}
+                    </span>
+                  </div>
+                  
                   <div>
                     <label className="block text-sm font-medium text-gray-500">Joined Date</label>
                     <p className="text-sm text-gray-900">{formatDate(viewUser.created_at)}</p>
