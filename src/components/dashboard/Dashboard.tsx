@@ -76,14 +76,14 @@ const Dashboard: React.FC<DashboardProps> = ({ onPageChange }) => {
         allPosts,
         plans,
         unreadNotifications,
-        subscriptions  // This is declared
+        subscriptions  // Add this
       ] = await Promise.all([
         ApiService.getUsers({ limit: 100 }),
         ApiService.getPayments({ limit: 50, status: 'approved' }),
         ApiService.getPosts({ limit: 50 }),
         ApiService.getPlans(),
         ApiService.getNotifications({ limit: 1, unread_only: true }),
-        ApiService.getSubscriptions()  // Make sure this method exists and is called
+        ApiService.getSubscriptions()  // Add this API call
       ]);
 
       // Calculate stats from the fetched data instead of making separate API calls
