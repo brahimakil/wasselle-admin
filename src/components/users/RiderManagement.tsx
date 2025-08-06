@@ -1,15 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ApiService, User } from '../../utils/api';
+import ConfirmationModal from '../common/ConfirmationModal';
+import { useConfirmation } from '../../hooks/useConfirmation';
 
 const RiderManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  // Update the filters state
+  
+  // FIX 2: ADD missing confirmation hook (after line 7)
+  const { confirmationState, showConfirmation } = useConfirmation();
+  
   const [filters, setFilters] = useState({
     search: '',
     is_banned: '',
-    account_status: ''  // Add this line
+    account_status: ''
   });
   const [pagination, setPagination] = useState({
     current_page: 1,
@@ -55,42 +60,17 @@ const RiderManagement: React.FC = () => {
     }
   };
 
-  // Add account status control functions (same as driver)
-  const handleAccountStatusUpdate = async (userId: number, newStatus: 'pending' | 'active') => {
-    const statusText = newStatus === 'active' ? 'activate' : 'set to pending';
-    const confirmed = await confirm(
-      `Are you sure you want to ${statusText} this rider's account?`,
-      `This will ${newStatus === 'active' ? 'allow the rider to access app features' : 'block the rider from using the app'}.`
-    );
-    
-    if (!confirmed) return;
-    
-    try {
-      setError('');
-      const response = await ApiService.updateUser({
-        id: userId,
-        account_status: newStatus
-      });
-      
-      if (response.success) {
-        fetchUsers(); // Refresh the list
-        alert(`✅ Rider account ${statusText} successfully!`);
-      } else {
-        setError(response.message || `Failed to ${statusText} account`);
-      }
-    } catch (err) {
-      console.error('Account status update error:', err);
-      setError(err instanceof Error ? err.message : `Failed to ${statusText} account`);
-    }
-  };
-
-  // Add ban update function (same as driver)
+  // FIX 3: ADD missing handleBanUpdate function (add this anywhere before the return statement)
   const handleBanUpdate = async (userId: number, newStatus: 0 | 1) => {
     const statusText = newStatus === 1 ? 'ban' : 'unban';
-    const confirmed = await confirm(
-      `Are you sure you want to ${statusText} this rider?`,
-      `This will ${newStatus === 1 ? 'block the rider from using the app' : 'allow the rider to access app features'}.`
-    );
+    
+    const confirmed = await showConfirmation({
+      title: `${statusText.charAt(0).toUpperCase() + statusText.slice(1)} Rider`,
+      message: `Are you sure you want to ${statusText} this rider?`,
+      type: newStatus === 1 ? 'danger' : 'info',
+      confirmText: statusText.charAt(0).toUpperCase() + statusText.slice(1),
+      cancelText: 'Cancel'
+    });
 
     if (!confirmed) return;
 
@@ -100,10 +80,9 @@ const RiderManagement: React.FC = () => {
         id: userId,
         is_banned: newStatus
       });
-
+      
       if (response.success) {
-        fetchUsers(); // Refresh the list
-        alert(`✅ Rider ${statusText} successfully!`);
+        fetchUsers();
       } else {
         setError(response.message || `Failed to ${statusText} rider`);
       }
@@ -113,21 +92,21 @@ const RiderManagement: React.FC = () => {
     }
   };
 
-  const fetchUsers = async () => {
+  // FIX 4: Make fetchUsers a useCallback (replace the existing fetchUsers function)
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
       
       const response = await ApiService.getUsers({
         ...filters,
-        role: 'rider', // Only fetch riders
+        role: 'rider',
         page: pagination.current_page,
         limit: pagination.limit
       });
 
       if (response.success) {
         setUsers(response.users || []);
-        
         setPagination(prev => ({
           ...prev,
           current_page: response.pagination?.current_page || prev.current_page,
@@ -143,11 +122,12 @@ const RiderManagement: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters, pagination.current_page, pagination.limit]);
 
+  // FIX 5: Update useEffect (replace the existing useEffect)
   useEffect(() => {
     fetchUsers();
-  }, [filters, pagination.current_page]);
+  }, [fetchUsers]);
 
   const handleUpdateUser = async (userData: Partial<User>) => {
     if (!selectedUser) return;
@@ -199,11 +179,41 @@ const RiderManagement: React.FC = () => {
     }
   };
 
-  // Update getStatusBadge for riders (no verification badge)
+  const handleAccountStatusUpdate = async (userId: number, newStatus: 'pending' | 'active') => {
+    const statusText = newStatus === 'active' ? 'activate' : 'set to pending';
+    
+    const confirmed = await showConfirmation({
+      title: `${statusText.charAt(0).toUpperCase() + statusText.slice(1)} Account`,
+      message: `Are you sure you want to ${statusText} this rider's account? This will ${newStatus === 'active' ? 'allow the rider to access app features' : 'block the rider from using the app'}.`,
+      type: newStatus === 'active' ? 'info' : 'warning',
+      confirmText: statusText.charAt(0).toUpperCase() + statusText.slice(1),
+      cancelText: 'Cancel'
+    });
+    
+    if (!confirmed) return;
+    
+    try {
+      setError('');
+      const response = await ApiService.updateUser({
+        id: userId,
+        account_status: newStatus
+      });
+      
+      if (response.success) {
+        fetchUsers(); // Refresh the list
+      } else {
+        setError(response.message || `Failed to ${statusText} account`);
+      }
+    } catch (err) {
+      console.error('Account status update error:', err);
+      setError(err instanceof Error ? err.message : `Failed to ${statusText} account`);
+    }
+  };
+
   const getStatusBadge = (user: User) => {
     const badges = [];
     
-    // Account Status Badge
+    // ADD Account Status Badge (highest priority)
     if (user.account_status === 'pending') {
       badges.push(
         <span key="account" className="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-full">
@@ -263,17 +273,18 @@ const RiderManagement: React.FC = () => {
 
       {/* Filters */}
       <div className="bg-white p-4 rounded-lg shadow">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
             <input
               type="text"
-              placeholder="Search drivers..."
+              placeholder="Search riders..."
               value={filters.search}
               onChange={(e) => setFilters({...filters, search: e.target.value})}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
+          {/* ADD Account Status Filter */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Account Status</label>
             <select
@@ -286,6 +297,7 @@ const RiderManagement: React.FC = () => {
               <option value="active">Active</option>
             </select>
           </div>
+          {/* Keep existing ban filter */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Ban Status</label>
             <select
@@ -293,18 +305,10 @@ const RiderManagement: React.FC = () => {
               onChange={(e) => setFilters({...filters, is_banned: e.target.value})}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="">All Drivers</option>
+              <option value="">All Riders</option>
               <option value="0">Active</option>
               <option value="1">Banned</option>
             </select>
-          </div>
-          <div className="flex items-end">
-            <button
-              onClick={() => setPagination(prev => ({ ...prev, current_page: 1 }))}
-              className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
-            >
-              Apply Filters
-            </button>
           </div>
         </div>
       </div>
@@ -365,7 +369,7 @@ const RiderManagement: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex flex-col space-y-2">
-                        {/* Account Status Controls */}
+                        {/* ADD Account Status Controls (first priority) */}
                         {user.account_status === 'pending' ? (
                           <button
                             onClick={() => handleAccountStatusUpdate(user.id, 'active')}
@@ -382,10 +386,10 @@ const RiderManagement: React.FC = () => {
                           </button>
                         )}
                         
-                        {/* Only show other controls for active accounts */}
+                        {/* Keep existing controls, but only show for active accounts */}
                         {user.account_status === 'active' && (
                           <>
-                            {/* Ban Controls */}
+                            {/* Existing ban controls */}
                             {user.is_banned === 1 ? (
                               <button
                                 onClick={() => handleBanUpdate(user.id, 0)}
@@ -402,6 +406,7 @@ const RiderManagement: React.FC = () => {
                               </button>
                             )}
                             
+                            {/* Existing view action */}
                             <button
                               onClick={() => handleViewUser(user)}
                               className="text-gray-600 hover:text-gray-900 text-xs"
@@ -705,7 +710,7 @@ const RiderManagement: React.FC = () => {
                     <div className="border rounded-lg p-2">
                       <img 
                         src={`/api/proxy?path=uploads/image.php&image=${encodeURIComponent(viewUser.face_photo)}`}
-                        alt="Face Photo"
+                        alt="Face ID"
                         className="w-full h-48 object-cover rounded"
                         onError={(e) => {
                           e.currentTarget.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><rect width="200" height="200" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%236b7280">No Image</text></svg>';
@@ -725,7 +730,7 @@ const RiderManagement: React.FC = () => {
                     <div className="border rounded-lg p-2">
                       <img 
                         src={`/api/proxy?path=uploads/image.php&image=${encodeURIComponent(viewUser.passport_photo)}`}
-                        alt="Passport/ID Photo"
+                        alt="ID Document"
                         className="w-full h-48 object-cover rounded"
                         onError={(e) => {
                           e.currentTarget.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><rect width="200" height="200" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%236b7280">No Image</text></svg>';
@@ -755,6 +760,16 @@ const RiderManagement: React.FC = () => {
           </div>
         </div>
       )}
+      <ConfirmationModal
+        isOpen={confirmationState.isOpen}
+        title={confirmationState.title}
+        message={confirmationState.message}
+        confirmText={confirmationState.confirmText}
+        cancelText={confirmationState.cancelText}
+        onConfirm={confirmationState.onConfirm}
+        onCancel={confirmationState.onCancel}
+        type={confirmationState.type}
+      />
     </div>
   );
 };

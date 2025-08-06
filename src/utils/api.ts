@@ -56,7 +56,7 @@ export interface User {
   role: 'rider' | 'driver';
   is_verified: number;
   is_banned: number;
-  account_status: 'pending' | 'active';  // Add this line
+  account_status: 'pending' | 'active';
   created_at: string;
   country_name?: string;
 }
@@ -318,7 +318,7 @@ export class ApiService {
     role?: string;
     is_verified?: string;
     is_banned?: string;
-    account_status?: string;  // Add this line
+    account_status?: string;
   } = {}): Promise<ApiResponse> {
     const queryParams = new URLSearchParams();
     
@@ -434,7 +434,6 @@ export class ApiService {
     return this.handleResponse(response);
   }
 
-  // Add new method for admin to create users with active status
   static async createUserByAdmin(userData: {
     name: string;
     email: string;

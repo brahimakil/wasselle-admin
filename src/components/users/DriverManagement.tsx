@@ -458,16 +458,33 @@ const DriverManagement: React.FC = () => {
   };
 
   const getStatusBadge = (user: User) => {
-    if (user.is_banned) {
-      return <span className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded-full">Banned</span>;
+    const badges = [];
+    
+    // ADD Account Status Badge (highest priority)
+    if (user.account_status === 'pending') {
+      badges.push(
+        <span key="account" className="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-full">
+          ⏳ Pending Approval
+        </span>
+      );
+    } else if (user.account_status === 'active') {
+      badges.push(
+        <span key="account" className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">
+          ✅ Active Account
+        </span>
+      );
     }
     
-    // For drivers: Show badge status (separate from plan status)
-    if (user.is_verified) {
-      return <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">✓ Verified Driver</span>;
+    // Keep existing verification logic
+    if (user.is_banned) {
+      badges.push(<span key="banned" className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded-full">Banned</span>);
+    } else if (user.is_verified) {
+      badges.push(<span key="verified" className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">✓ Verified Driver</span>);
     } else {
-      return <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-full">Unverified</span>;
+      badges.push(<span key="unverified" className="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-full">Unverified</span>);
     }
+    
+    return <div className="flex flex-wrap gap-1">{badges}</div>;
   };
 
   const getPlanStatus = (user: User) => {
@@ -503,6 +520,37 @@ const DriverManagement: React.FC = () => {
   };
 
   const { confirmationState, showConfirmation } = useConfirmation();
+
+  const handleAccountStatusUpdate = async (userId: number, newStatus: 'pending' | 'active') => {
+    const statusText = newStatus === 'active' ? 'activate' : 'set to pending';
+    
+    const confirmed = await showConfirmation({
+      title: `${statusText.charAt(0).toUpperCase() + statusText.slice(1)} Account`,
+      message: `Are you sure you want to ${statusText} this driver's account? This will ${newStatus === 'active' ? 'allow the driver to access app features' : 'block the driver from using the app'}.`,
+      type: newStatus === 'active' ? 'info' : 'warning',
+      confirmText: statusText.charAt(0).toUpperCase() + statusText.slice(1),
+      cancelText: 'Cancel'
+    });
+    
+    if (!confirmed) return;
+    
+    try {
+      setError('');
+      const response = await ApiService.updateUser({
+        id: userId,
+        account_status: newStatus
+      });
+      
+      if (response.success) {
+        fetchUsers(); // Refresh the list
+      } else {
+        setError(response.message || `Failed to ${statusText} account`);
+      }
+    } catch (err) {
+      console.error('Account status update error:', err);
+      setError(err instanceof Error ? err.message : `Failed to ${statusText} account`);
+    }
+  };
 
   return (
     <div className="space-y-6 fade-in">
@@ -567,6 +615,18 @@ const DriverManagement: React.FC = () => {
               <option value="">All Statuses</option>
               <option value="0">Active</option>
               <option value="1">Banned</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Account Status</label>
+            <select
+              value={filters.account_status}
+              onChange={(e) => setFilters({...filters, account_status: e.target.value})}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All Status</option>
+              <option value="pending">Pending Approval</option>
+              <option value="active">Active</option>
             </select>
           </div>
           <div className="flex items-end">
@@ -679,6 +739,21 @@ const DriverManagement: React.FC = () => {
                             </button>
                           );
                         })()}
+                        {user.account_status === 'pending' ? (
+                          <button
+                            onClick={() => handleAccountStatusUpdate(user.id, 'active')}
+                            className="text-green-600 hover:text-green-900 text-xs"
+                          >
+                            Activate Account
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleAccountStatusUpdate(user.id, 'pending')}
+                            className="text-yellow-600 hover:text-yellow-900 text-xs"
+                          >
+                            Set to Pending
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -1145,7 +1220,7 @@ const DriverManagement: React.FC = () => {
                     <div className="border rounded-lg p-2">
                       <img 
                         src={`/api/proxy?path=uploads/image.php&image=${encodeURIComponent(viewUser.face_photo)}`}
-                        alt="Face Photo"
+                        alt="Face ID"
                         className="w-full h-48 object-cover rounded"
                         onError={(e) => {
                           e.currentTarget.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><rect width="200" height="200" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%236b7280">No Image</text></svg>';
@@ -1165,7 +1240,7 @@ const DriverManagement: React.FC = () => {
                     <div className="border rounded-lg p-2">
                       <img 
                         src={`/api/proxy?path=uploads/image.php&image=${encodeURIComponent(viewUser.passport_photo)}`}
-                        alt="Passport/ID Photo"
+                        alt="ID Document"
                         className="w-full h-48 object-cover rounded"
                         onError={(e) => {
                           e.currentTarget.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><rect width="200" height="200" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%236b7280">No Image</text></svg>';
