@@ -109,7 +109,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onPageChange }) => {
       const rejectedPayments = payments.filter(p => p.status === 'rejected');
       
       // Post stats
-      const activePosts = posts.filter(p => p.status === 'active');
+      const activePosts = posts.filter(p => p.is_active === 1);
       
       // Calculate active subscriptions properly
       const subs = subscriptions.subscriptions || [];
