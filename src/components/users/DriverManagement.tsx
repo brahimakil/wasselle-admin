@@ -793,30 +793,103 @@ const DriverManagement: React.FC = () => {
           </table>
         </div>
 
-        {/* Pagination */}
+        {/* Enhanced Pagination */}
         {pagination.total_pages > 1 && (
-          <div className="px-6 py-3 border-t border-gray-200">
+          <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
             <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-700">
-                Showing {((pagination.current_page - 1) * pagination.limit) + 1} to {Math.min(pagination.current_page * pagination.limit, pagination.total_users)} of {pagination.total_users} drivers
+              <div className="flex items-center space-x-4">
+                <div className="text-sm text-gray-700">
+                  Showing {((pagination.current_page - 1) * pagination.limit) + 1} to {Math.min(pagination.current_page * pagination.limit, pagination.total_users)} of {pagination.total_users} drivers
+                </div>
+                <div className="flex items-center space-x-2">
+                  <label className="text-sm text-gray-700">Items per page:</label>
+                  <select
+                    value={pagination.limit}
+                    onChange={(e) => setPagination(prev => ({ ...prev, limit: parseInt(e.target.value), current_page: 1 }))}
+                    className="border border-gray-300 rounded px-2 py-1 text-sm"
+                  >
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                  </select>
+                </div>
               </div>
-              <div className="flex space-x-2">
+              
+              <div className="flex items-center space-x-1">
+                {/* First Page */}
+                <button
+                  onClick={() => setPagination(prev => ({ ...prev, current_page: 1 }))}
+                  disabled={pagination.current_page === 1}
+                  className="px-3 py-2 border border-gray-300 rounded-l text-sm bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="First page"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                  </svg>
+                </button>
+                
+                {/* Previous Page */}
                 <button
                   onClick={() => setPagination(prev => ({ ...prev, current_page: Math.max(1, prev.current_page - 1) }))}
                   disabled={pagination.current_page === 1}
-                  className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50"
+                  className="px-3 py-2 border-t border-b border-gray-300 text-sm bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Previous page"
                 >
-                  Previous
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                  </svg>
                 </button>
-                <span className="px-3 py-1 text-sm">
-                  Page {pagination.current_page} of {pagination.total_pages}
-                </span>
+                
+                {/* Page Numbers */}
+                {Array.from({ length: Math.min(5, pagination.total_pages) }, (_, i) => {
+                  let pageNum;
+                  if (pagination.total_pages <= 5) {
+                    pageNum = i + 1;
+                  } else if (pagination.current_page <= 3) {
+                    pageNum = i + 1;
+                  } else if (pagination.current_page >= pagination.total_pages - 2) {
+                    pageNum = pagination.total_pages - 4 + i;
+                  } else {
+                    pageNum = pagination.current_page - 2 + i;
+                  }
+                  
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setPagination(prev => ({ ...prev, current_page: pageNum }))}
+                      className={`px-3 py-2 border-t border-b border-gray-300 text-sm ${
+                        pagination.current_page === pageNum
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white hover:bg-gray-50'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+                
+                {/* Next Page */}
                 <button
                   onClick={() => setPagination(prev => ({ ...prev, current_page: Math.min(pagination.total_pages, prev.current_page + 1) }))}
                   disabled={pagination.current_page === pagination.total_pages}
-                  className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50"
+                  className="px-3 py-2 border-t border-b border-gray-300 text-sm bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Next page"
                 >
-                  Next
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+                
+                {/* Last Page */}
+                <button
+                  onClick={() => setPagination(prev => ({ ...prev, current_page: pagination.total_pages }))}
+                  disabled={pagination.current_page === pagination.total_pages}
+                  className="px-3 py-2 border border-gray-300 rounded-r text-sm bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Last page"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                  </svg>
                 </button>
               </div>
             </div>
