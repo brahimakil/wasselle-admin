@@ -1041,8 +1041,16 @@ export class ApiService {
     const queryParams = new URLSearchParams();
     
     Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== '') {
-        queryParams.append(key, String(value));
+      if (value !== undefined && value !== null) {
+        // For booleans, only append if true
+        if (typeof value === 'boolean') {
+          if (value) {
+            queryParams.append(key, 'true');
+          }
+        } else {
+          // For numbers and strings, convert to string and append
+          queryParams.append(key, String(value));
+        }
       }
     });
 
