@@ -109,6 +109,27 @@ const DriverManagement: React.FC = () => {
     setActiveDriverPlan(null);
   };
 
+  const fetchDriverPaymentMethods = async () => {
+    try {
+      const token = localStorage.getItem('adminToken'); // or however you get the token
+      const response = await fetch('/api/admin/drivers/payment-methods.php', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        setDriverPaymentMethods(data.driver_payment_methods || {});
+        console.log('Driver payment methods loaded:', data.driver_payment_methods);
+      } else {
+        console.warn('Failed to fetch driver payment methods:', data.message);
+      }
+    } catch (error) {
+      console.error('Error fetching driver payment methods:', error);
+    }
+  };
+
   const fetchUsers = async () => {
     try {
       setLoading(true);
@@ -124,9 +145,8 @@ const DriverManagement: React.FC = () => {
       if (response.success) {
         setUsers(response.users || []);
         
-        // Fetch subscriptions and payment methods for each driver
+        // Fetch subscriptions for each driver (keep this part)
         const subscriptionData: {[key: number]: any[]} = {};
-        const paymentMethodData: {[key: number]: string} = {};
         
         for (const user of response.users || []) {
           try {
@@ -136,28 +156,9 @@ const DriverManagement: React.FC = () => {
               subscriptionData[user.id] = userDetails.subscriptions;
             }
             
-            // Fetch most recent payment method for this driver
-            const driverPayments = await ApiService.getDriverPayments(user.id);
-            if (driverPayments.success && driverPayments.payments && driverPayments.payments.length > 0) {
-              // Check if they have ANY approved payments first
-              const approvedPayments = driverPayments.payments.filter((p: any) => p.status === 'approved');
-              
-              if (approvedPayments.length > 0) {
-                // Get the most recent approved payment
-                const recentPayment = approvedPayments
-                  .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
-                
-                // Check if it has payment method name
-                if (recentPayment.payment_method_name) {
-                  paymentMethodData[user.id] = recentPayment.payment_method_name;
-                } else {
-                  // They have payments but no payment method (old payments)
-                  paymentMethodData[user.id] = 'NO_PAYMENT_METHOD';
-                }
-              }
-              // If no approved payments, don't set anything (will show "No payments yet")
-            }
-            // If no payments at all, don't set anything (will show "No payments yet")
+            // REMOVE THE PAYMENT METHOD FETCHING - we'll get it from the new API
+            // const driverPayments = await ApiService.getDriverPayments(user.id);
+            // ... remove all the payment method logic here
             
           } catch (err) {
             console.warn(`Failed to fetch data for driver ${user.id}:`, err);
@@ -165,7 +166,7 @@ const DriverManagement: React.FC = () => {
         }
         
         setUserSubscriptions(subscriptionData);
-        setDriverPaymentMethods(paymentMethodData);
+        // DON'T set payment methods here anymore - we'll get them from the new API
         
         setPagination({
           current_page: response.pagination?.current_page || pagination.current_page,
@@ -196,8 +197,13 @@ const DriverManagement: React.FC = () => {
 
   useEffect(() => {
     fetchUsers();
-    fetchPaymentMethods(); // Add this line
+    fetchPaymentMethods();
+    fetchDriverPaymentMethods(); // Add this new call
   }, [filters, pagination.current_page]);
+
+  useEffect(() => {
+    fetchDriverPaymentMethods();
+  }, []);
 
   useEffect(() => {
     // Fetch plans for payment creation
