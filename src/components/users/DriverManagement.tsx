@@ -139,15 +139,26 @@ const DriverManagement: React.FC = () => {
             // Fetch most recent payment method for this driver
             const driverPayments = await ApiService.getDriverPayments(user.id);
             if (driverPayments.success && driverPayments.payments && driverPayments.payments.length > 0) {
-              // Get the most recent approved payment with payment method
-              const recentPayment = driverPayments.payments
-                .filter((p: any) => p.status === 'approved' && p.payment_method_name)
-                .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+              // Check if they have ANY approved payments first
+              const approvedPayments = driverPayments.payments.filter((p: any) => p.status === 'approved');
               
-              if (recentPayment && recentPayment.payment_method_name) {
-                paymentMethodData[user.id] = recentPayment.payment_method_name;
+              if (approvedPayments.length > 0) {
+                // Get the most recent approved payment
+                const recentPayment = approvedPayments
+                  .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+                
+                // Check if it has payment method name
+                if (recentPayment.payment_method_name) {
+                  paymentMethodData[user.id] = recentPayment.payment_method_name;
+                } else {
+                  // They have payments but no payment method (old payments)
+                  paymentMethodData[user.id] = 'NO_PAYMENT_METHOD';
+                }
               }
+              // If no approved payments, don't set anything (will show "No payments yet")
             }
+            // If no payments at all, don't set anything (will show "No payments yet")
+            
           } catch (err) {
             console.warn(`Failed to fetch data for driver ${user.id}:`, err);
           }
@@ -602,7 +613,10 @@ const DriverManagement: React.FC = () => {
   // Filter users based on payment method if filter is applied
   const filteredUsers = users.filter(user => {
     if (!filters.payment_method) return true;
-    return driverPaymentMethods[user.id] === filters.payment_method;
+    const userPaymentMethod = driverPaymentMethods[user.id];
+    // Don't include drivers with no payment method or no payments in the filter
+    if (!userPaymentMethod || userPaymentMethod === 'NO_PAYMENT_METHOD') return false;
+    return userPaymentMethod === filters.payment_method;
   });
 
   // Add this right before the return statement (around line 608)
@@ -801,10 +815,22 @@ const DriverManagement: React.FC = () => {
                           </div>
                           <div className="ml-3">
                             <div className="text-sm font-medium text-gray-900">
-                              {driverPaymentMethods[user.id] || 'No payments yet'}
+                              {(() => {
+                                const paymentMethod = driverPaymentMethods[user.id];
+                                if (!paymentMethod) {
+                                  return <span className="text-gray-500 italic">No payments yet</span>;
+                                } else if (paymentMethod === 'NO_PAYMENT_METHOD') {
+                                  return <span className="text-orange-500 italic">No payment method</span>;
+                                } else {
+                                  return paymentMethod;
+                                }
+                              })()}
                             </div>
-                            {driverPaymentMethods[user.id] && (
+                            {driverPaymentMethods[user.id] && driverPaymentMethods[user.id] !== 'NO_PAYMENT_METHOD' && (
                               <div className="text-xs text-gray-500">Last used method</div>
+                            )}
+                            {driverPaymentMethods[user.id] === 'NO_PAYMENT_METHOD' && (
+                              <div className="text-xs text-orange-500">Old payment without method</div>
                             )}
                           </div>
                         </div>
