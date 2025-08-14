@@ -343,7 +343,10 @@ const DriverManagement: React.FC = () => {
       }
       
       // Step 2: Create payment record
-      const response = await ApiService.createPayment(createPaymentForm);
+      const response = await ApiService.createPayment({
+        ...createPaymentForm,
+        admin_note: createPaymentForm.admin_note || 'Admin-created payment'
+      });
       console.log('Payment creation response:', response);
       
       if (response.success) {

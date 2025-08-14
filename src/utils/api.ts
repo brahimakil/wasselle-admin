@@ -1109,13 +1109,4 @@ export class ApiService {
     
     return this.handleResponse(response);
   }
-
-  static async getDriverPayments(driverId: number): Promise<ApiResponse> {
-    const response = await this.makeProxyRequest(`driver/payments/list.php?driver_id=${driverId}`, {
-      method: 'GET',
-      headers: this.getAuthHeaders()
-    });
-    
-    return this.handleResponse(response);
-  }
 }

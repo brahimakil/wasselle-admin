@@ -214,17 +214,18 @@ const PaymentManagement: React.FC = () => {
     }
   };
 
-  // Use backend-calculated status with the new timing-based logic
+  // Update the getStatusBadge function to respect admin choices
   const getStatusBadge = (payment: Payment) => {
     let statusElement;
     let warningElement = null;
     
-    // Use the backend-calculated payment_subscription_status
-    const backendStatus = payment.payment_subscription_status;
+    // Check if this is an admin-created payment (has admin_note or was created through admin panel)
+    const isAdminCreated = payment.admin_note && payment.admin_note.trim() !== '';
     
     switch (payment.status) {
       case 'pending':
-        if (backendStatus === 'blocked') {
+        // Only show protection warning for driver-submitted payments, NOT admin-created ones
+        if (payment.payment_subscription_status === 'blocked' && !isAdminCreated) {
           statusElement = <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-full">Pending</span>;
           warningElement = <span className="px-2 py-1 text-xs bg-orange-100 text-orange-700 rounded-full">⚠️ Protected</span>;
         } else {
@@ -233,18 +234,18 @@ const PaymentManagement: React.FC = () => {
         break;
         
       case 'approved':
-        switch (backendStatus) {
+        switch (payment.payment_subscription_status) {
           case 'active':
             statusElement = <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">✓ Active Plan</span>;
             break;
           case 'superseded':
-            statusElement = <span className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-full">📋 Old Plan</span>;
+            statusElement = <span className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-full">Approved (Inactive)</span>;
             break;
           case 'removed':
-            statusElement = <span className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-full">Removed by Admin</span>;
+            statusElement = <span className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-full">Approved (Removed)</span>;
             break;
           default:
-            statusElement = <span className="px-2 py-1 text-xs bg-orange-100 text-orange-700 rounded-full">Ended</span>;
+            statusElement = <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">Approved</span>;
         }
         break;
         
@@ -480,7 +481,7 @@ const PaymentManagement: React.FC = () => {
                       {formatDate(payment.created_at)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      {payment.status === 'pending' && payment.payment_subscription_status !== 'blocked' ? (
+                      {payment.status === 'pending' && (payment.payment_subscription_status !== 'blocked' || (payment.admin_note && payment.admin_note.trim() !== '')) ? (
                         <div className="flex space-x-2">
                           <button
                             onClick={() => openActionModal(payment, 'approve')}
@@ -497,12 +498,12 @@ const PaymentManagement: React.FC = () => {
                         </div>
                       ) : payment.status === 'pending' && payment.payment_subscription_status === 'blocked' ? (
                         <div className="flex flex-col space-y-1">
-                          <span className="text-orange-600 text-xs font-medium">⚠️ Protected</span>
+                          <span className="text-orange-600 text-xs font-medium">⚠️ Driver Protection</span>
                           <div className="flex space-x-1">
                             <button
                               onClick={() => openActionModal(payment, 'approve')}
                               className="text-blue-600 hover:text-blue-900 text-xs underline"
-                              title="This will replace the current active plan"
+                              title="Override driver protection"
                             >
                               Override & Approve
                             </button>
@@ -525,7 +526,7 @@ const PaymentManagement: React.FC = () => {
                           </button>
                         </div>
                       ) : (
-                        <span className="text-gray-500">No Action Available</span>
+                        <span className="text-gray-400 text-xs">No actions</span>
                       )}
                     </td>
                   </tr>
