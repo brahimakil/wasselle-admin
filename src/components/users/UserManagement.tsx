@@ -9,6 +9,7 @@ const UserManagement: React.FC = () => {
   const [filters, setFilters] = useState({
     search: '',
     role: '',
+    gender: '',
     is_verified: '',
     is_banned: ''
   });
@@ -24,6 +25,8 @@ const UserManagement: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showCreatePaymentModal, setShowCreatePaymentModal] = useState(false);
+  const [showEditGenderModal, setShowEditGenderModal] = useState(false);
+  const [editingGender, setEditingGender] = useState('');
   
   // User subscriptions data
   const [userSubscriptions, setUserSubscriptions] = useState<{[key: number]: any[]}>({});
@@ -391,6 +394,27 @@ const UserManagement: React.FC = () => {
     });
   };
 
+  const handleUpdateGender = async () => {
+    if (!selectedUser) return;
+
+    try {
+      const response = await ApiService.updateUser({
+        id: selectedUser.id,
+        gender: editingGender as 'male' | 'female'
+      });
+
+      if (response.success) {
+        setShowEditGenderModal(false);
+        setSelectedUser(null);
+        fetchUsers(); // Refresh the user list
+      } else {
+        setError(response.message || 'Failed to update gender');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    }
+  };
+
   return (
     <div className="space-y-6 fade-in">
       {/* Header with Create Buttons */}
@@ -463,6 +487,19 @@ const UserManagement: React.FC = () => {
           </div>
 
           <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Gender</label>
+            <select
+              value={filters.gender}
+              onChange={(e) => handleFilterChange('gender', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">All Genders</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
+
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Verification Badge</label>
             <select
               value={filters.is_verified}
@@ -510,6 +547,9 @@ const UserManagement: React.FC = () => {
                   Role
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Gender
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Badge Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -529,14 +569,14 @@ const UserManagement: React.FC = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center">
+                  <td colSpan={8} className="px-6 py-12 text-center">
                     <div className="loading-spinner w-6 h-6 border-4 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
                     <p className="mt-2 text-gray-500">Loading users...</p>
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
                     No users found
                   </td>
                 </tr>
@@ -573,6 +613,17 @@ const UserManagement: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 py-1 text-xs rounded-full ${
+                          user.gender === 'male' 
+                            ? 'bg-blue-100 text-blue-700' 
+                            : user.gender === 'female'
+                            ? 'bg-pink-100 text-pink-700'
+                            : 'bg-gray-100 text-gray-700'
+                        }`}>
+                          {user.gender ? user.gender.charAt(0).toUpperCase() + user.gender.slice(1) : 'Not specified'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
                         {getStatusBadge(user)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -598,79 +649,27 @@ const UserManagement: React.FC = () => {
                         {formatDate(user.created_at)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setShowModal(true);
-                          }}
-                          className="text-blue-600 hover:text-blue-900 mr-3"
-                        >
-                          View
-                        </button>
-                        
-                        {/* Badge Management for drivers */}
-                        {user.role === 'driver' && (
-                          <>
-                            {!user.is_verified ? (
-                              <button
-                                onClick={() => handleUserAction(user, 'verify')}
-                                className="text-green-600 hover:text-green-900 mr-3"
-                                title="Give verification badge (quality indicator)"
-                              >
-                                Give Badge
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => handleUserAction(user, 'unverify')}
-                                className="text-orange-600 hover:text-orange-900 mr-3"
-                                title="Remove verification badge"
-                              >
-                                Remove Badge
-                              </button>
-                            )}
-                            
-                            {/* Plan Management */}
-                            {hasActiveSubscription(user.id) ? (
-                              <button
-                                onClick={() => handleRemovePlan(user)}
-                                className="text-red-600 hover:text-red-900 mr-3"
-                                title="Remove active plan (enables new plan purchases)"
-                              >
-                                Remove Plan
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => {
-                                  setCreatePaymentForm(prev => ({ ...prev, driver_id: user.id }));
-                                  setShowCreatePaymentModal(true);
-                                }}
-                                className="text-purple-600 hover:text-purple-900 mr-3"
-                                title="Create payment record for plan access"
-                              >
-                                Add Payment
-                              </button>
-                            )}
-                          </>
-                        )}
-                        
-                        {/* Ban/Unban for all users */}
-                        {!user.is_banned ? (
+                        <div className="flex space-x-2">
                           <button
-                            onClick={() => handleUserAction(user, 'ban')}
-                            className="text-red-600 hover:text-red-900 mr-3"
-                            title="Ban user (removes all access)"
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setShowModal(true);
+                            }}
+                            className="text-blue-600 hover:text-blue-900"
                           >
-                            Ban
+                            View
                           </button>
-                        ) : (
                           <button
-                            onClick={() => handleUserAction(user, 'unban')}
-                            className="text-green-600 hover:text-green-900 mr-3"
-                            title="Unban user"
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setEditingGender(user.gender || '');
+                              setShowEditGenderModal(true);
+                            }}
+                            className="text-green-600 hover:text-green-900"
                           >
-                            Unban
+                            Edit Gender
                           </button>
-                        )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -1035,6 +1034,10 @@ const UserManagement: React.FC = () => {
                   <p className="mt-1 text-sm text-gray-900 capitalize">{selectedUser.role}</p>
                 </div>
                 <div>
+                  <label className="block text-sm font-medium text-gray-700">Gender</label>
+                  <p className="mt-1 text-sm text-gray-900 capitalize">{selectedUser.gender || 'Not specified'}</p>
+                </div>
+                <div>
                   <label className="block text-sm font-medium text-gray-700">Date of Birth</label>
                   <p className="mt-1 text-sm text-gray-900">{selectedUser.dob || 'Not provided'}</p>
                 </div>
@@ -1140,8 +1143,65 @@ const UserManagement: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Edit Gender Modal */}
+      {showEditGenderModal && selectedUser && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">Edit User Gender</h3>
+                <button
+                  onClick={() => setShowEditGenderModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div className="px-6 py-4">
+              <div className="mb-4">
+                <p className="text-sm text-gray-600">User: <span className="font-medium">{selectedUser.name}</span></p>
+                <p className="text-sm text-gray-600">Email: <span className="font-medium">{selectedUser.email}</span></p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Gender</label>
+                <select
+                  value={editingGender}
+                  onChange={(e) => setEditingGender(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Select Gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+              <button
+                onClick={() => setShowEditGenderModal(false)}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors duration-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpdateGender}
+                disabled={!editingGender}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200"
+              >
+                Update Gender
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default UserManagement; 
+export default UserManagement;

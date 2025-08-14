@@ -50,6 +50,7 @@ export interface User {
   email: string;
   phone?: string;
   dob?: string;
+  gender?: 'male' | 'female';
   place_of_living?: string;
   face_photo?: string;
   passport_photo?: string;
@@ -316,6 +317,7 @@ export class ApiService {
     limit?: number;
     search?: string;
     role?: string;
+    gender?: string;
     is_verified?: string;
     is_banned?: string;
     account_status?: string;
