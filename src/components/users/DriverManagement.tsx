@@ -214,6 +214,17 @@ const DriverManagement: React.FC = () => {
     });
   }, []);
 
+  // Add refresh listener (around line 165, after useEffect)
+  useEffect(() => {
+    const handleRefresh = () => {
+      fetchUsers();
+      fetchDriverPaymentMethods();
+    };
+    
+    window.addEventListener('refreshDriverData', handleRefresh);
+    return () => window.removeEventListener('refreshDriverData', handleRefresh);
+  }, []);
+
   const handleUpdateUser = async (userData: Partial<User>) => {
     if (!selectedUser) return;
     
@@ -383,20 +394,23 @@ const DriverManagement: React.FC = () => {
             }
             
           } catch (subscriptionErr: any) {
-            console.error('Failed to create subscription after payment:', subscriptionErr);
-            setError(`Payment created but failed to activate subscription: ${subscriptionErr.message}`);
+            console.error('Failed to create subscription:', subscriptionErr);
+            setError('Payment created but failed to activate subscription: ' + subscriptionErr.message);
             return;
           }
         }
         
         closeCreatePaymentModal();
-        fetchUsers();
+        
+        // IMPORTANT: Refresh all data
+        await fetchUsers();
+        await fetchDriverPaymentMethods();
         
         const selectedDriver = users.find(u => u.id === createPaymentForm.driver_id);
         const selectedPlan = plans.find(p => p.id === createPaymentForm.plan_id);
         
         const successMessage = driverHasActivePlan 
-          ? `✅ Plan REPLACED successfully!\n\n${selectedDriver?.name} now has: ${selectedPlan?.name}\n\nPrevious plan (${activeDriverPlan?.plan_name}) was deactivated.`
+          ? `✅ Plan REPLACED successfully!\n\n${selectedDriver?.name} now has: ${selectedPlan?.name}\n\nPrevious plan was deactivated.`
           : `✅ Plan ASSIGNED successfully!\n\n${selectedDriver?.name} now has: ${selectedPlan?.name}`;
         
         alert(successMessage);
@@ -551,23 +565,28 @@ const DriverManagement: React.FC = () => {
     return <div className="flex flex-wrap gap-1">{badges}</div>;
   };
 
-  const getPlanStatus = (user: User) => {
-    const driverSubs = userSubscriptions[user.id] || [];
-    const activeSub = driverSubs.find(sub => sub.is_active === 1);
+  const getPlanStatusBadge = (userId: number) => {
+    const userSubs = userSubscriptions[userId] || [];
+    const activeSub = userSubs.find(sub => sub.is_active === 1);
     
     if (!activeSub) {
       return <span className="text-gray-400 text-xs">No active plan</span>;
     }
     
+    // Check if plan is expired
     const isExpired = new Date(activeSub.end_date) < new Date();
+    
+    if (isExpired) {
+      return <span className="text-red-400 text-xs">Plan Expired</span>;
+    }
     
     return (
       <div className="text-xs">
-        <div className={`font-medium ${isExpired ? 'text-red-600' : 'text-green-600'}`}>
+        <div className="font-medium text-green-600">
           {activeSub.plan_name}
         </div>
         <div className="text-gray-500">
-          {isExpired ? 'Expired: ' : 'Expires: '}{formatDate(activeSub.end_date)}
+          Expires: {formatDate(activeSub.end_date)}
         </div>
       </div>
     );
@@ -844,8 +863,8 @@ const DriverManagement: React.FC = () => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         {getStatusBadge(user)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {getPlanStatus(user)}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {getPlanStatusBadge(user.id)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {formatDate(user.created_at)}
@@ -1475,7 +1494,7 @@ const DriverManagement: React.FC = () => {
                 <div className="pt-4">
                   <h4 className="text-md font-semibold text-gray-800 border-b pb-2">Current Plan Status</h4>
                   <div className="mt-2">
-                    {getPlanStatus(viewUser)}
+                    {getPlanStatusBadge(user.id)}
                   </div>
                 </div>
               </div>

@@ -1109,4 +1109,14 @@ export class ApiService {
     
     return this.handleResponse(response);
   }
+
+  // Add this method to get fresh subscription data
+  static async refreshDriverSubscription(driverId: number): Promise<ApiResponse> {
+    const response = await this.makeProxyRequest(`admin/users/get.php?id=${driverId}`, {
+      method: 'GET',
+      headers: this.getAuthHeaders()
+    });
+    
+    return this.handleResponse(response);
+  }
 }

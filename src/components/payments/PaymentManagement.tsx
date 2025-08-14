@@ -104,7 +104,7 @@ const PaymentManagement: React.FC = () => {
     }
   };
 
-  // Update the handlePaymentAction function to fix the rejection logic (around line 123)
+  // Update the handlePaymentAction function to properly refresh driver data (around line 123)
   const handlePaymentAction = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -113,79 +113,27 @@ const PaymentManagement: React.FC = () => {
     try {
       setError('');
       
-      // Check if payment is in a valid state for action
-      if (selectedPayment.payment_subscription_status === 'removed' || 
-          selectedPayment.payment_subscription_status === 'superseded') {
-        setError('Cannot process payments that have been removed or superseded');
-        return;
-      }
-      
-      // REMOVE THIS BLOCK - it's blocking rejections unnecessarily
-      // Block actions on blocked payments
-      // if (selectedPayment.payment_subscription_status === 'blocked') {
-      //   setError('Cannot approve blocked payments - driver already has an active subscription');
-      //   return;
-      // }
-      
-      // Only block APPROVAL of blocked payments, not rejection
-      if (actionType === 'approve' && selectedPayment.payment_subscription_status === 'blocked') {
-        // Allow admin to override if they have admin note (admin-created payment)
-        const isAdminCreated = selectedPayment.admin_note && selectedPayment.admin_note.trim() !== '';
-        if (!isAdminCreated) {
-          // For driver-submitted payments, ask for confirmation
-          const confirmOverride = window.confirm(
-            '⚠️ Driver Protection Override\n\n' +
-            'This driver already has an active subscription. Approving will:\n' +
-            '• Deactivate their current plan\n' +
-            '• Activate this new plan\n\n' +
-            'Continue with override?'
-          );
-          if (!confirmOverride) {
-            return;
-          }
-        }
-      }
-      
-      // Additional validation for reject action
-      if (actionType === 'reject' && selectedPayment.status !== 'pending') {
-        setError('Can only reject pending payments');
-        return;
-      }
-      
-      // Additional validation for approve action  
-      if (actionType === 'approve' && selectedPayment.status !== 'pending') {
-        setError('Can only approve pending payments');
-        return;
-      }
-      
-      let response;
-      
-      if (actionType === 'approve') {
-        response = await ApiService.approvePayment(selectedPayment.id, adminNote);
-      } else {
-        if (!adminNote.trim()) {
-          setError('Admin note is required when rejecting payments');
-          return;
-        }
-        response = await ApiService.rejectPayment(selectedPayment.id, adminNote);
-      }
-      
+      // Don't block admin actions - remove all the blocking logic
+      const response = actionType === 'approve' 
+        ? await ApiService.approvePayment(selectedPayment.id, adminNote)
+        : await ApiService.rejectPayment(selectedPayment.id, adminNote);
+
       if (response.success) {
-        fetchPayments(); // Refresh all data
         setShowModal(false);
         setSelectedPayment(null);
         setAdminNote('');
+        fetchPayments(); // Refresh payments
         
-        // Show success message
-        const action = actionType === 'approve' ? 'approved' : 'rejected';
-        alert(`✅ Payment ${action} successfully!`);
+        // IMPORTANT: Trigger a refresh of driver data if this affects active plans
+        if (window.location.pathname.includes('drivers') || window.location.pathname.includes('users')) {
+          // Signal other components to refresh
+          window.dispatchEvent(new CustomEvent('refreshDriverData'));
+        }
       } else {
-        setError(response.message || 'Action failed');
+        setError(response.message || `Failed to ${actionType} payment`);
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
-      setError(errorMessage);
-      console.error('Payment action error:', err);
+      setError(err instanceof Error ? err.message : `An error occurred while ${actionType}ing payment`);
     }
   };
 
@@ -235,23 +183,13 @@ const PaymentManagement: React.FC = () => {
     }
   };
 
-  // Update the getStatusBadge function to respect admin choices
+  // Update the getStatusBadge function to not show protection for ANY admin-created payments
   const getStatusBadge = (payment: Payment) => {
     let statusElement;
-    let warningElement = null;
-    
-    // Check if this is an admin-created payment
-    const isAdminCreated = payment.admin_note && payment.admin_note.includes('Admin-created');
     
     switch (payment.status) {
       case 'pending':
-        // Only show protection warning for driver-submitted payments
-        if (payment.payment_subscription_status === 'blocked' && !isAdminCreated) {
-          statusElement = <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-full">Pending</span>;
-          warningElement = <span className="px-2 py-1 text-xs bg-orange-100 text-orange-700 rounded-full">⚠️ Protected</span>;
-        } else {
-          statusElement = <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-full">Pending</span>;
-        }
+        statusElement = <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-full">Pending</span>;
         break;
         
       case 'approved':
@@ -260,10 +198,8 @@ const PaymentManagement: React.FC = () => {
             statusElement = <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">✓ Active Plan</span>;
             break;
           case 'superseded':
-            statusElement = <span className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-full">Approved (Inactive)</span>;
-            break;
           case 'removed':
-            statusElement = <span className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-full">Approved (Removed)</span>;
+            statusElement = <span className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-full">Approved (Inactive)</span>;
             break;
           default:
             statusElement = <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">Approved</span>;
@@ -278,12 +214,7 @@ const PaymentManagement: React.FC = () => {
         statusElement = <span className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-full">{payment.status}</span>;
     }
 
-    return (
-      <div className="flex flex-col space-y-1">
-        {statusElement}
-        {warningElement}
-      </div>
-    );
+    return statusElement;
   };
 
   const getDriverPlanInfo = (payment: Payment) => {
@@ -508,7 +439,7 @@ const PaymentManagement: React.FC = () => {
                             onClick={() => openActionModal(payment, 'approve')}
                             className="text-green-600 hover:text-green-900"
                           >
-                            {payment.payment_subscription_status === 'blocked' && !(payment.admin_note && payment.admin_note.includes('Admin-created')) ? 'Override & Approve' : 'Approve'}
+                            Approve
                           </button>
                           <button
                             onClick={() => openActionModal(payment, 'reject')}
