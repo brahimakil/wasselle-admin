@@ -11,6 +11,7 @@ const DriverManagement: React.FC = () => {
   const [filters, setFilters] = useState({
     search: '',
     gender: '',
+    payment_method: '',
     is_verified: '',
     is_banned: '',
     account_status: ''
@@ -73,6 +74,9 @@ const DriverManagement: React.FC = () => {
   // Add state for payment methods
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
 
+  // Add state to store driver payment methods
+  const [driverPaymentMethods, setDriverPaymentMethods] = useState<{[key: number]: string}>({});
+
   // Add function to check driver's current plan when selected
   const handleDriverSelection = (driverId: number) => {
     setCreatePaymentForm(prev => ({ ...prev, driver_id: driverId }));
@@ -120,32 +124,49 @@ const DriverManagement: React.FC = () => {
       if (response.success) {
         setUsers(response.users || []);
         
-        // Fetch subscriptions for each driver
+        // Fetch subscriptions and payment methods for each driver
         const subscriptionData: {[key: number]: any[]} = {};
+        const paymentMethodData: {[key: number]: string} = {};
+        
         for (const user of response.users || []) {
           try {
+            // Fetch subscriptions
             const userDetails = await ApiService.getUser(user.id);
             if (userDetails.success && userDetails.subscriptions) {
               subscriptionData[user.id] = userDetails.subscriptions;
             }
+            
+            // Fetch most recent payment method for this driver
+            const driverPayments = await ApiService.getDriverPayments(user.id);
+            if (driverPayments.success && driverPayments.payments && driverPayments.payments.length > 0) {
+              // Get the most recent approved payment with payment method
+              const recentPayment = driverPayments.payments
+                .filter((p: any) => p.status === 'approved' && p.payment_method_name)
+                .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+              
+              if (recentPayment && recentPayment.payment_method_name) {
+                paymentMethodData[user.id] = recentPayment.payment_method_name;
+              }
+            }
           } catch (err) {
-            console.warn(`Failed to fetch subscriptions for user ${user.id}`);
+            console.warn(`Failed to fetch data for driver ${user.id}:`, err);
           }
         }
-        setUserSubscriptions(subscriptionData);
         
-        setPagination(prev => ({
-          ...prev,
-          current_page: response.pagination?.current_page || prev.current_page,
-          total_pages: response.pagination?.total_pages || prev.total_pages,
+        setUserSubscriptions(subscriptionData);
+        setDriverPaymentMethods(paymentMethodData);
+        
+        setPagination({
+          current_page: response.pagination?.current_page || pagination.current_page,
+          total_pages: response.pagination?.total_pages || pagination.total_pages,
           total_users: response.pagination?.total_users || 0,
-          limit: response.pagination?.limit || prev.limit
-        }));
+          limit: response.pagination?.limit || pagination.limit
+        });
       } else {
         setError(response.message || 'Failed to fetch drivers');
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch drivers');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
     }
@@ -575,6 +596,12 @@ const DriverManagement: React.FC = () => {
     }
   };
 
+  // Filter users based on payment method if filter is applied
+  const filteredUsers = users.filter(user => {
+    if (!filters.payment_method) return true;
+    return driverPaymentMethods[user.id] === filters.payment_method;
+  });
+
   return (
     <div className="space-y-6 fade-in">
       {/* Header */}
@@ -605,7 +632,7 @@ const DriverManagement: React.FC = () => {
 
       {/* Filters */}
       <div className="bg-white p-4 rounded-lg shadow">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
             <input
@@ -626,6 +653,21 @@ const DriverManagement: React.FC = () => {
               <option value="">All Genders</option>
               <option value="male">Male</option>
               <option value="female">Female</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+            <select
+              value={filters.payment_method}
+              onChange={(e) => setFilters(prev => ({ ...prev, payment_method: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All Payment Methods</option>
+              {paymentMethods.map(method => (
+                <option key={method.id} value={method.name}>
+                  {method.name}
+                </option>
+              ))}
             </select>
           </div>
           <div>
@@ -684,6 +726,7 @@ const DriverManagement: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Driver</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gender</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Method</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Plan</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joined</th>
@@ -693,14 +736,14 @@ const DriverManagement: React.FC = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-4 text-center text-gray-500">Loading drivers...</td>
+                  <td colSpan={9} className="px-6 py-4 text-center text-gray-500">Loading drivers...</td>
                 </tr>
-              ) : users.length === 0 ? (
+              ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-4 text-center text-gray-500">No drivers found</td>
+                  <td colSpan={9} className="px-6 py-4 text-center text-gray-500">No drivers found</td>
                 </tr>
               ) : (
-                users.map(user => {
+                filteredUsers.map(user => {
                   const userSubs = userSubscriptions[user.id] || [];
                   const activeSub = userSubs.find(sub => sub.is_active === 1);
                   
@@ -735,6 +778,25 @@ const DriverManagement: React.FC = () => {
                         }`}>
                           {user.gender ? user.gender.charAt(0).toUpperCase() + user.gender.slice(1) : 'Not specified'}
                         </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0">
+                            <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                              <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                              </svg>
+                            </div>
+                          </div>
+                          <div className="ml-3">
+                            <div className="text-sm font-medium text-gray-900">
+                              {driverPaymentMethods[user.id] || 'No payments yet'}
+                            </div>
+                            {driverPaymentMethods[user.id] && (
+                              <div className="text-xs text-gray-500">Last used method</div>
+                            )}
+                          </div>
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {getStatusBadge(user)}

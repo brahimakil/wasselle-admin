@@ -226,7 +226,7 @@ const PaymentManagement: React.FC = () => {
       case 'pending':
         if (backendStatus === 'blocked') {
           statusElement = <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-full">Pending</span>;
-          warningElement = <span className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded-full">🔒 Blocked</span>;
+          warningElement = <span className="px-2 py-1 text-xs bg-orange-100 text-orange-700 rounded-full">⚠️ Protected</span>;
         } else {
           statusElement = <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-full">Pending</span>;
         }
@@ -330,12 +330,13 @@ const PaymentManagement: React.FC = () => {
       {/* Info Panel - New protection info */}
       <div className="admin-card p-4">
         <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg">
-          <h4 className="font-medium mb-2">🔒 Payment Protection System:</h4>
+          <h4 className="font-medium mb-2">🛡️ Payment Protection System:</h4>
           <ul className="text-sm space-y-1">
-            <li>• <strong>Protected Payments:</strong> Drivers with active plans cannot submit new payments via app</li>
-            <li>• <strong>Active Plan:</strong> Only one approved payment can be active per driver</li>
-            <li>• <strong>Admin Override:</strong> You can approve protected payments (will deactivate old plan)</li>
-            <li>• <strong>Status Guide:</strong> "Active Plan" = currently giving posting access, "Approved (Inactive)" = superseded by newer plan</li>
+            <li>• <strong>Protected Payments:</strong> When a driver has an active plan, new payments are marked as "Protected"</li>
+            <li>• <strong>Override & Approve:</strong> You can approve protected payments - this will safely replace the current plan</li>
+            <li>• <strong>Automatic Handling:</strong> The old plan gets deactivated and the new plan becomes active</li>
+            <li>• <strong>Safety Feature:</strong> Prevents accidental double-charging while allowing admin flexibility</li>
+            <li>• <strong>Example:</strong> Driver extends plan before expiry = Protected payment that you can approve</li>
           </ul>
         </div>
       </div>
@@ -495,7 +496,24 @@ const PaymentManagement: React.FC = () => {
                           </button>
                         </div>
                       ) : payment.status === 'pending' && payment.payment_subscription_status === 'blocked' ? (
-                        <span className="text-red-500 text-xs">🔒 Blocked</span>
+                        <div className="flex flex-col space-y-1">
+                          <span className="text-orange-600 text-xs font-medium">⚠️ Protected</span>
+                          <div className="flex space-x-1">
+                            <button
+                              onClick={() => openActionModal(payment, 'approve')}
+                              className="text-blue-600 hover:text-blue-900 text-xs underline"
+                              title="This will replace the current active plan"
+                            >
+                              Override & Approve
+                            </button>
+                            <button
+                              onClick={() => openActionModal(payment, 'reject')}
+                              className="text-red-600 hover:text-red-900 text-xs underline"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        </div>
                       ) : payment.status === 'approved' && payment.payment_subscription_status === 'active' ? (
                         <div className="flex flex-col space-y-1">
                           <span className="text-green-600 font-medium text-xs">✓ Active</span>
@@ -582,10 +600,10 @@ const PaymentManagement: React.FC = () => {
                 const driverSubs = driverSubscriptions[selectedPayment.driver_id] || [];
                 const activeSub = driverSubs.find(sub => sub.is_active === 1);
                 return activeSub ? (
-                  <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-700">
-                    <strong>⚠️ Protection Override Warning:</strong><br/>
-                    This driver has an active plan: {activeSub.plan_name}<br/>
-                    Approving will deactivate the current plan and activate this one.
+                  <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded text-sm text-orange-700">
+                    <strong>🛡️ Protected Payment Override:</strong><br/>
+                    This driver has an active plan: <strong>{activeSub.plan_name}</strong> (expires {formatDate(activeSub.end_date)})<br/>
+                    Approving will safely replace the current plan with the new one.
                   </div>
                 ) : null;
               })()}
