@@ -492,7 +492,7 @@ const RiderManagement: React.FC = () => {
                 
                 {/* Page Numbers */}
                 {Array.from({ length: Math.min(5, pagination.total_pages) }, (_, i) => {
-                  let pageNum;
+                  let pageNum: number;
                   if (pagination.total_pages <= 5) {
                     pageNum = i + 1;
                   } else if (pagination.current_page <= 3) {
