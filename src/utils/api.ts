@@ -11,6 +11,7 @@ export interface ApiResponse<T = any> {
   plans?: any[];
   subscriptions?: any[];
   payments?: any[];
+  payment_methods?: PaymentMethod[];
   posts?: Post[];
   countries?: Country[];
   notifications?: Notification[];
@@ -30,6 +31,7 @@ export interface ApiResponse<T = any> {
     total_subscriptions?: number;
     total_payments?: number;
     total_posts?: number;
+    total_methods?: number;
     total?: number;
     limit: number;
     per_page?: number;
