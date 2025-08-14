@@ -1494,7 +1494,7 @@ const DriverManagement: React.FC = () => {
                 <div className="pt-4">
                   <h4 className="text-md font-semibold text-gray-800 border-b pb-2">Current Plan Status</h4>
                   <div className="mt-2">
-                    {getPlanStatusBadge(user.id)}
+                    {getPlanStatusBadge(viewUser.id)}
                   </div>
                 </div>
               </div>
