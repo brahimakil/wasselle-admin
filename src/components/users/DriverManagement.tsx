@@ -69,10 +69,6 @@ const DriverManagement: React.FC = () => {
     per_page: 20
   });
 
-  // Add state for edit gender modal
-  const [showEditGenderModal, setShowEditGenderModal] = useState(false);
-  const [editingGender, setEditingGender] = useState('');
-
   // Add function to check driver's current plan when selected
   const handleDriverSelection = (driverId: number) => {
     setCreatePaymentForm(prev => ({ ...prev, driver_id: driverId }));
@@ -557,27 +553,6 @@ const DriverManagement: React.FC = () => {
     }
   };
 
-  const handleUpdateGender = async () => {
-    if (!selectedUser) return;
-
-    try {
-      const response = await ApiService.updateUser({
-        id: selectedUser.id,
-        gender: editingGender as 'male' | 'female'
-      });
-
-      if (response.success) {
-        setShowEditGenderModal(false);
-        setSelectedUser(null);
-        fetchUsers(); // Refresh the user list
-      } else {
-        setError(response.message || 'Failed to update gender');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    }
-  };
-
   return (
     <div className="space-y-6 fade-in">
       {/* Header */}
@@ -808,16 +783,6 @@ const DriverManagement: React.FC = () => {
                               Set to Pending
                             </button>
                           )}
-                          <button
-                            onClick={() => {
-                              setSelectedUser(user);
-                              setEditingGender(user.gender || '');
-                              setShowEditGenderModal(true);
-                            }}
-                            className="text-green-600 hover:text-green-900 text-xs"
-                          >
-                            Edit Gender
-                          </button>
                         </div>
                       </td>
                     </tr>
@@ -884,6 +849,18 @@ const DriverManagement: React.FC = () => {
                 />
               </div>
               <div>
+                <label className="block text-sm font-medium text-gray-700">Gender</label>
+                <select
+                  value={selectedUser.gender || ''}
+                  onChange={(e) => setSelectedUser(prev => prev ? { ...prev, gender: e.target.value as 'male' | 'female' } : null)}
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select Gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                </select>
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700">Phone</label>
                 <input
                   type="text"
@@ -933,12 +910,9 @@ const DriverManagement: React.FC = () => {
                 </select>
               </div>
             </div>
-            <div className="mt-6 flex justify-end space-x-3">
+            <div className="flex justify-end space-x-2 mt-6">
               <button
-                onClick={() => {
-                  setShowModal(false);
-                  setSelectedUser(null);
-                }}
+                onClick={() => setShowModal(false)}
                 className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
               >
                 Cancel
@@ -947,7 +921,7 @@ const DriverManagement: React.FC = () => {
                 onClick={() => handleUpdateUser(selectedUser)}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
               >
-                Save Changes
+                Update
               </button>
             </div>
           </div>
