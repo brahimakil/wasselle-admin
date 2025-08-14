@@ -557,9 +557,6 @@ const DriverManagement: React.FC = () => {
     }
   };
 
-  const [showEditGenderModal, setShowEditGenderModal] = useState(false);
-  const [editingGender, setEditingGender] = useState('');
-
   const handleUpdateGender = async () => {
     if (!selectedUser) return;
 
