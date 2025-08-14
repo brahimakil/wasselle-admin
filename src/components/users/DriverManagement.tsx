@@ -605,6 +605,14 @@ const DriverManagement: React.FC = () => {
     return driverPaymentMethods[user.id] === filters.payment_method;
   });
 
+  // Add this right before the return statement (around line 608)
+  console.log('Current driverPaymentMethods state:', driverPaymentMethods);
+  console.log('Filtered users:', filteredUsers.map(u => ({
+    id: u.id,
+    name: u.name,
+    paymentMethod: driverPaymentMethods[u.id]
+  })));
+
   return (
     <div className="space-y-6 fade-in">
       {/* Header */}
