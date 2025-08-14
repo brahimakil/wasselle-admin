@@ -78,14 +78,16 @@ const Dashboard: React.FC<DashboardProps> = ({ onPageChange }) => {
         allPosts,
         plans,
         unreadNotifications,
-        subscriptions  // Add this
+        subscriptions,  // Add this
+        countries       // Add countries fetch
       ] = await Promise.all([
         ApiService.getUsers({ limit: 100 }),
         ApiService.getPayments({ limit: 50, status: 'approved' }),
         ApiService.getPosts({ limit: 50 }),
         ApiService.getPlans(),
         ApiService.getNotifications({ limit: 1, unread_only: true }),
-        ApiService.getSubscriptions()  // Add this API call
+        ApiService.getSubscriptions(),  // Add this API call
+        ApiService.getCountries()       // Add countries API call
       ]);
 
       // Calculate stats from the fetched data instead of making separate API calls
@@ -98,7 +100,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onPageChange }) => {
       const riders = users.filter(u => u.role === 'rider');
       const verified = users.filter(u => u.is_verified === 1);
       const banned = users.filter(u => u.is_banned === 1);
-      const pending = users.filter(u => u.is_verified === 0 && u.role === 'driver');
+      const pending = users.filter(u => u.account_status === 'pending');
+      const active = users.filter(u => u.account_status === 'active');
       
       // Payment stats
       const pendingPayments = payments.filter(p => p.status === 'pending');
@@ -106,15 +109,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onPageChange }) => {
       const rejectedPayments = payments.filter(p => p.status === 'rejected');
       
       // Post stats
-      const activePosts = posts.filter(p => p.is_active === 1);
+      const activePosts = posts.filter(p => p.status === 'active');
       
-      // FIX: Properly calculate active subscriptions
-      const allSubscriptions = subscriptions.subscriptions || [];
-      const activeSubsCount = allSubscriptions.filter(sub => sub.is_active === 1).length;
-
-      // ADD account status calculations
-      const pendingUsers = users.filter(u => u.account_status === 'pending');
-      const activeUsers = users.filter(u => u.account_status === 'active');
+      // Calculate active subscriptions properly
+      const subs = subscriptions.subscriptions || [];
+      const activeSubsCount = subs.filter(sub => sub.is_active === 1).length;
 
       setStats({
         totalUsers: users.length,
@@ -123,7 +122,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onPageChange }) => {
         verifiedUsers: verified.length,
         bannedUsers: banned.length,
         pendingApprovals: pending.length,
-        activeUsers: activeUsers.length,
+        activeUsers: active.length,
         totalPayments: payments.length,
         pendingPayments: pendingPayments.length,
         approvedPayments: approvedPayments.length,
@@ -132,14 +131,14 @@ const Dashboard: React.FC<DashboardProps> = ({ onPageChange }) => {
         activePosts: activePosts.length,
         totalPlans: plans.plans?.length || 0,
         activeSubscriptions: activeSubsCount,  // Use the corrected count
-        totalCountries: 0,
+        totalCountries: countries.countries?.length || 0,  // Fix: Use actual countries count
         unreadNotifications: unreadNotifications.unread_count || 0
       });
 
       // Set recent data
       setRecentUsers(users.slice(0, 5));
-      setRecentPayments(payments.slice(0, 5)); // Add this line back
-
+      setRecentPayments(payments.slice(0, 5));
+      
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       setError('Failed to load dashboard data');
