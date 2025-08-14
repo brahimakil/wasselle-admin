@@ -13,6 +13,7 @@ const RiderManagement: React.FC = () => {
   
   const [filters, setFilters] = useState({
     search: '',
+    gender: '',
     is_banned: '',
     account_status: ''
   });
@@ -42,6 +43,32 @@ const RiderManagement: React.FC = () => {
   // Add view modal state
   const [showViewModal, setShowViewModal] = useState(false);
   const [viewUser, setViewUser] = useState<User | null>(null);
+
+  // Add these modal states after existing ones
+  const [showEditGenderModal, setShowEditGenderModal] = useState(false);
+  const [editingGender, setEditingGender] = useState('');
+
+  // Add this function after existing functions
+  const handleUpdateGender = async () => {
+    if (!selectedUser) return;
+
+    try {
+      const response = await ApiService.updateUser({
+        id: selectedUser.id,
+        gender: editingGender as 'male' | 'female'
+      });
+
+      if (response.success) {
+        setShowEditGenderModal(false);
+        setSelectedUser(null);
+        fetchUsers();
+      } else {
+        setError(response.message || 'Failed to update gender');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    }
+  };
 
   // Add this function to open view modal
   const handleViewUser = async (user: User) => {
@@ -273,7 +300,7 @@ const RiderManagement: React.FC = () => {
 
       {/* Filters */}
       <div className="bg-white p-4 rounded-lg shadow">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
             <input
@@ -283,6 +310,18 @@ const RiderManagement: React.FC = () => {
               onChange={(e) => setFilters({...filters, search: e.target.value})}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Gender</label>
+            <select
+              value={filters.gender}
+              onChange={(e) => setFilters({...filters, gender: e.target.value})}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">All Genders</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
           </div>
           {/* ADD Account Status Filter */}
           <div>
@@ -305,7 +344,7 @@ const RiderManagement: React.FC = () => {
               onChange={(e) => setFilters({...filters, is_banned: e.target.value})}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="">All Riders</option>
+              <option value="">All Status</option>
               <option value="0">Active</option>
               <option value="1">Banned</option>
             </select>
@@ -764,6 +803,63 @@ const RiderManagement: React.FC = () => {
                 className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Gender Modal */}
+      {showEditGenderModal && selectedUser && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">Edit Driver Gender</h3>
+                <button
+                  onClick={() => setShowEditGenderModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div className="px-6 py-4">
+              <div className="mb-4">
+                <p className="text-sm text-gray-600">Driver: <span className="font-medium">{selectedUser.name}</span></p>
+                <p className="text-sm text-gray-600">Email: <span className="font-medium">{selectedUser.email}</span></p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Gender</label>
+                <select
+                  value={editingGender}
+                  onChange={(e) => setEditingGender(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Select Gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+              <button
+                onClick={() => setShowEditGenderModal(false)}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors duration-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpdateGender}
+                disabled={!editingGender}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200"
+              >
+                Update Gender
               </button>
             </div>
           </div>

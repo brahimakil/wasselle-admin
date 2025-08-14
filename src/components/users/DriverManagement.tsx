@@ -10,6 +10,7 @@ const DriverManagement: React.FC = () => {
   const [error, setError] = useState('');
   const [filters, setFilters] = useState({
     search: '',
+    gender: '',
     is_verified: '',
     is_banned: '',
     account_status: ''
@@ -67,6 +68,10 @@ const DriverManagement: React.FC = () => {
     total: 0,
     per_page: 20
   });
+
+  // Add state for edit gender modal
+  const [showEditGenderModal, setShowEditGenderModal] = useState(false);
+  const [editingGender, setEditingGender] = useState('');
 
   // Add function to check driver's current plan when selected
   const handleDriverSelection = (driverId: number) => {
@@ -552,6 +557,30 @@ const DriverManagement: React.FC = () => {
     }
   };
 
+  const [showEditGenderModal, setShowEditGenderModal] = useState(false);
+  const [editingGender, setEditingGender] = useState('');
+
+  const handleUpdateGender = async () => {
+    if (!selectedUser) return;
+
+    try {
+      const response = await ApiService.updateUser({
+        id: selectedUser.id,
+        gender: editingGender as 'male' | 'female'
+      });
+
+      if (response.success) {
+        setShowEditGenderModal(false);
+        setSelectedUser(null);
+        fetchUsers(); // Refresh the user list
+      } else {
+        setError(response.message || 'Failed to update gender');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    }
+  };
+
   return (
     <div className="space-y-6 fade-in">
       {/* Header */}
@@ -582,7 +611,7 @@ const DriverManagement: React.FC = () => {
 
       {/* Filters */}
       <div className="bg-white p-4 rounded-lg shadow">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
             <input
@@ -592,6 +621,18 @@ const DriverManagement: React.FC = () => {
               onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+            <select
+              value={filters.gender}
+              onChange={(e) => setFilters(prev => ({ ...prev, gender: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All Genders</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Verification Status</label>
@@ -648,6 +689,7 @@ const DriverManagement: React.FC = () => {
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Driver</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gender</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Plan</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joined</th>
@@ -657,107 +699,133 @@ const DriverManagement: React.FC = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center text-gray-500">Loading drivers...</td>
+                  <td colSpan={8} className="px-6 py-4 text-center text-gray-500">Loading drivers...</td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center text-gray-500">No drivers found</td>
+                  <td colSpan={8} className="px-6 py-4 text-center text-gray-500">No drivers found</td>
                 </tr>
               ) : (
-                users.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10">
-                          <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
-                            <span className="text-sm font-medium text-gray-700">
-                              {user.name.charAt(0).toUpperCase()}
-                            </span>
+                users.map(user => {
+                  const userSubs = userSubscriptions[user.id] || [];
+                  const activeSub = userSubs.find(sub => sub.is_active === 1);
+                  
+                  return (
+                    <tr key={user.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-10 w-10">
+                            <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
+                              <span className="text-sm font-medium text-gray-700">
+                                {user.name.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                            <div className="text-sm text-gray-500">ID: {user.id}</div>
                           </div>
                         </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                          <div className="text-sm text-gray-500">ID: {user.id}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{user.email}</div>
-                      <div className="text-sm text-gray-500">{user.phone || 'No phone'}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(user)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getPlanStatus(user)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatDate(user.created_at)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => handleViewUser(user)}
-                          className="text-indigo-600 hover:text-indigo-900"
-                        >
-                          View
-                        </button>
-                        <button
-                          onClick={() => handleViewRatings(user)}
-                          className="text-purple-600 hover:text-purple-900"
-                        >
-                          View Ratings
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setShowModal(true);
-                          }}
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          Edit
-                        </button>
-                        {(() => {
-                          const driverSubs = userSubscriptions[user.id] || [];
-                          const activeSub = driverSubs.find(sub => sub.is_active === 1);
-                          return activeSub ? (
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{user.email}</div>
+                        <div className="text-sm text-gray-500">{user.phone || 'No phone'}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 py-1 text-xs rounded-full ${
+                          user.gender === 'male' 
+                            ? 'bg-blue-100 text-blue-700' 
+                            : user.gender === 'female'
+                            ? 'bg-pink-100 text-pink-700'
+                            : 'bg-gray-100 text-gray-700'
+                        }`}>
+                          {user.gender ? user.gender.charAt(0).toUpperCase() + user.gender.slice(1) : 'Not specified'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {getStatusBadge(user)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {getPlanStatus(user)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {formatDate(user.created_at)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleViewUser(user)}
+                            className="text-indigo-600 hover:text-indigo-900"
+                          >
+                            View
+                          </button>
+                          <button
+                            onClick={() => handleViewRatings(user)}
+                            className="text-purple-600 hover:text-purple-900"
+                          >
+                            View Ratings
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setShowModal(true);
+                            }}
+                            className="text-blue-600 hover:text-blue-900"
+                          >
+                            Edit
+                          </button>
+                          {(() => {
+                            const driverSubs = userSubscriptions[user.id] || [];
+                            const activeSub = driverSubs.find(sub => sub.is_active === 1);
+                            return activeSub ? (
+                              <button
+                                onClick={() => handleRemovePlan(user)}
+                                className="text-red-600 hover:text-red-900"
+                              >
+                                Remove Plan
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  setCreatePaymentForm(prev => ({ ...prev, driver_id: user.id }));
+                                  setShowCreatePaymentModal(true);
+                                }}
+                                className="text-green-600 hover:text-green-900"
+                              >
+                                Assign Plan
+                              </button>
+                            );
+                          })()}
+                          {user.account_status === 'pending' ? (
                             <button
-                              onClick={() => handleRemovePlan(user)}
-                              className="text-red-600 hover:text-red-900"
+                              onClick={() => handleAccountStatusUpdate(user.id, 'active')}
+                              className="text-green-600 hover:text-green-900 text-xs"
                             >
-                              Remove Plan
+                              Activate Account
                             </button>
                           ) : (
                             <button
-                              onClick={() => {
-                                setCreatePaymentForm(prev => ({ ...prev, driver_id: user.id }));
-                                setShowCreatePaymentModal(true);
-                              }}
-                              className="text-green-600 hover:text-green-900"
+                              onClick={() => handleAccountStatusUpdate(user.id, 'pending')}
+                              className="text-yellow-600 hover:text-yellow-900 text-xs"
                             >
-                              Assign Plan
+                              Set to Pending
                             </button>
-                          );
-                        })()}
-                        {user.account_status === 'pending' ? (
+                          )}
                           <button
-                            onClick={() => handleAccountStatusUpdate(user.id, 'active')}
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setEditingGender(user.gender || '');
+                              setShowEditGenderModal(true);
+                            }}
                             className="text-green-600 hover:text-green-900 text-xs"
                           >
-                            Activate Account
+                            Edit Gender
                           </button>
-                        ) : (
-                          <button
-                            onClick={() => handleAccountStatusUpdate(user.id, 'pending')}
-                            className="text-yellow-600 hover:text-yellow-900 text-xs"
-                          >
-                            Set to Pending
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -1178,6 +1246,10 @@ const DriverManagement: React.FC = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-500">Role</label>
                     <p className="text-sm text-gray-900 capitalize">{viewUser.role}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500">Gender</label>
+                    <p className="text-sm text-gray-900 capitalize">{viewUser.gender || 'Not specified'}</p>
                   </div>
                   {/* FIXED: Show all statuses clearly for drivers */}
                   <div>
