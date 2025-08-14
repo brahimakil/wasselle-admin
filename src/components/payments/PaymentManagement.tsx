@@ -104,6 +104,7 @@ const PaymentManagement: React.FC = () => {
     }
   };
 
+  // Update the handlePaymentAction function to fix the rejection logic (around line 123)
   const handlePaymentAction = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -119,10 +120,30 @@ const PaymentManagement: React.FC = () => {
         return;
       }
       
+      // REMOVE THIS BLOCK - it's blocking rejections unnecessarily
       // Block actions on blocked payments
-      if (selectedPayment.payment_subscription_status === 'blocked') {
-        setError('Cannot approve blocked payments - driver already has an active subscription');
-        return;
+      // if (selectedPayment.payment_subscription_status === 'blocked') {
+      //   setError('Cannot approve blocked payments - driver already has an active subscription');
+      //   return;
+      // }
+      
+      // Only block APPROVAL of blocked payments, not rejection
+      if (actionType === 'approve' && selectedPayment.payment_subscription_status === 'blocked') {
+        // Allow admin to override if they have admin note (admin-created payment)
+        const isAdminCreated = selectedPayment.admin_note && selectedPayment.admin_note.trim() !== '';
+        if (!isAdminCreated) {
+          // For driver-submitted payments, ask for confirmation
+          const confirmOverride = window.confirm(
+            '⚠️ Driver Protection Override\n\n' +
+            'This driver already has an active subscription. Approving will:\n' +
+            '• Deactivate their current plan\n' +
+            '• Activate this new plan\n\n' +
+            'Continue with override?'
+          );
+          if (!confirmOverride) {
+            return;
+          }
+        }
       }
       
       // Additional validation for reject action
@@ -219,12 +240,12 @@ const PaymentManagement: React.FC = () => {
     let statusElement;
     let warningElement = null;
     
-    // Check if this is an admin-created payment (has admin_note or was created through admin panel)
-    const isAdminCreated = payment.admin_note && payment.admin_note.trim() !== '';
+    // Check if this is an admin-created payment
+    const isAdminCreated = payment.admin_note && payment.admin_note.includes('Admin-created');
     
     switch (payment.status) {
       case 'pending':
-        // Only show protection warning for driver-submitted payments, NOT admin-created ones
+        // Only show protection warning for driver-submitted payments
         if (payment.payment_subscription_status === 'blocked' && !isAdminCreated) {
           statusElement = <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-full">Pending</span>;
           warningElement = <span className="px-2 py-1 text-xs bg-orange-100 text-orange-700 rounded-full">⚠️ Protected</span>;
@@ -481,13 +502,13 @@ const PaymentManagement: React.FC = () => {
                       {formatDate(payment.created_at)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      {payment.status === 'pending' && (payment.payment_subscription_status !== 'blocked' || (payment.admin_note && payment.admin_note.trim() !== '')) ? (
+                      {payment.status === 'pending' ? (
                         <div className="flex space-x-2">
                           <button
                             onClick={() => openActionModal(payment, 'approve')}
                             className="text-green-600 hover:text-green-900"
                           >
-                            Approve
+                            {payment.payment_subscription_status === 'blocked' && !(payment.admin_note && payment.admin_note.includes('Admin-created')) ? 'Override & Approve' : 'Approve'}
                           </button>
                           <button
                             onClick={() => openActionModal(payment, 'reject')}
@@ -495,25 +516,6 @@ const PaymentManagement: React.FC = () => {
                           >
                             Reject
                           </button>
-                        </div>
-                      ) : payment.status === 'pending' && payment.payment_subscription_status === 'blocked' ? (
-                        <div className="flex flex-col space-y-1">
-                          <span className="text-orange-600 text-xs font-medium">⚠️ Driver Protection</span>
-                          <div className="flex space-x-1">
-                            <button
-                              onClick={() => openActionModal(payment, 'approve')}
-                              className="text-blue-600 hover:text-blue-900 text-xs underline"
-                              title="Override driver protection"
-                            >
-                              Override & Approve
-                            </button>
-                            <button
-                              onClick={() => openActionModal(payment, 'reject')}
-                              className="text-red-600 hover:text-red-900 text-xs underline"
-                            >
-                              Reject
-                            </button>
-                          </div>
                         </div>
                       ) : payment.status === 'approved' && payment.payment_subscription_status === 'active' ? (
                         <div className="flex flex-col space-y-1">
