@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ApiService, User, Plan } from '../../utils/api';
+import { ApiService, User, Plan, PaymentMethod } from '../../utils/api';
 import ConfirmationModal from '../common/ConfirmationModal';
 import { useConfirmation } from '../../hooks/useConfirmation';
 
@@ -30,6 +30,7 @@ const DriverManagement: React.FC = () => {
   const [createPaymentForm, setCreatePaymentForm] = useState({
     driver_id: 0,
     plan_id: 0,
+    payment_method_id: 0,
     transaction_id: '',
     status: 'approved' as 'pending' | 'approved' | 'rejected',
     admin_note: ''
@@ -69,6 +70,9 @@ const DriverManagement: React.FC = () => {
     per_page: 20
   });
 
+  // Add state for payment methods
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+
   // Add function to check driver's current plan when selected
   const handleDriverSelection = (driverId: number) => {
     setCreatePaymentForm(prev => ({ ...prev, driver_id: driverId }));
@@ -92,6 +96,7 @@ const DriverManagement: React.FC = () => {
     setCreatePaymentForm({
       driver_id: 0,
       plan_id: 0,
+      payment_method_id: 0,
       transaction_id: '',
       status: 'approved',
       admin_note: ''
@@ -146,8 +151,20 @@ const DriverManagement: React.FC = () => {
     }
   };
 
+  const fetchPaymentMethods = async () => {
+    try {
+      const response = await ApiService.getActivePaymentMethods();
+      if (response.success) {
+        setPaymentMethods(response.payment_methods || []);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch payment methods:', err);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
+    fetchPaymentMethods(); // Add this line
   }, [filters, pagination.current_page]);
 
   useEffect(() => {
@@ -249,6 +266,11 @@ const DriverManagement: React.FC = () => {
     
     if (createPaymentForm.plan_id === 0) {
       setError('Please select a plan');
+      return;
+    }
+
+    if (createPaymentForm.payment_method_id === 0) {
+      setError('Please select a payment method');
       return;
     }
     
@@ -1072,6 +1094,26 @@ const DriverManagement: React.FC = () => {
                   ))}
                 </select>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Payment Method</label>
+                <select
+                  value={createPaymentForm.payment_method_id}
+                  onChange={(e) => setCreatePaymentForm(prev => ({ ...prev, payment_method_id: parseInt(e.target.value) }))}
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  <option value={0}>Select Payment Method</option>
+                  {paymentMethods.map(method => (
+                    <option key={method.id} value={method.id}>
+                      {method.name}
+                    </option>
+                  ))}
+                </select>
+                {paymentMethods.length === 0 && (
+                  <p className="text-xs text-gray-500 mt-1">No payment methods available</p>
+                )}
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700">Transaction ID</label>
                 <input

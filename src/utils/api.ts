@@ -94,6 +94,7 @@ export interface Payment {
   id: number;
   driver_id: number;
   plan_id: number;
+  payment_method_id?: number;
   transaction_id: string;
   status: 'pending' | 'approved' | 'rejected';
   admin_note?: string;
@@ -102,6 +103,7 @@ export interface Payment {
   driver_name: string;
   driver_email: string;
   plan_name: string;
+  payment_method_name?: string;
   price: string;
   duration_days: number;
   payment_subscription_status?: string;
@@ -110,6 +112,18 @@ export interface Payment {
   subscription_start?: string;
   subscription_end?: string;
   active_plan_id?: number;
+}
+
+export interface PaymentMethod {
+  id: number;
+  name: string;
+  description?: string;
+  is_active: number;
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string;
+  total_payments?: number;
+  approved_payments?: number;
 }
 
 export interface Post {
@@ -1014,5 +1028,75 @@ export class ApiService {
     
     const result = await this.handleResponse(response);
     return result as unknown as DriverRatingsResponse;
+  }
+
+  // Payment Methods Management
+  static async getPaymentMethods(params: {
+    show_deleted?: boolean;
+    page?: number;
+    limit?: number;
+  } = {}): Promise<ApiResponse> {
+    const queryParams = new URLSearchParams();
+    
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== '') {
+        queryParams.append(key, String(value));
+      }
+    });
+
+    const response = await this.makeProxyRequest(`admin/payment-methods/list.php?${queryParams}`, {
+      method: 'GET',
+      headers: this.getAuthHeaders()
+    });
+    
+    return this.handleResponse(response);
+  }
+
+  static async createPaymentMethod(data: {
+    name: string;
+    description?: string;
+    is_active: boolean;
+  }): Promise<ApiResponse> {
+    const response = await this.makeProxyRequest('admin/payment-methods/create.php', {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    
+    return this.handleResponse(response);
+  }
+
+  static async updatePaymentMethod(data: {
+    id: number;
+    name: string;
+    description?: string;
+    is_active: boolean;
+  }): Promise<ApiResponse> {
+    const response = await this.makeProxyRequest('admin/payment-methods/update.php', {
+      method: 'PUT',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    
+    return this.handleResponse(response);
+  }
+
+  static async deletePaymentMethod(id: number): Promise<ApiResponse> {
+    const response = await this.makeProxyRequest('admin/payment-methods/delete.php', {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify({ id })
+    });
+    
+    return this.handleResponse(response);
+  }
+
+  // Public endpoint for users to get active payment methods
+  static async getActivePaymentMethods(): Promise<ApiResponse> {
+    const response = await this.makeProxyRequest('payment-methods/list.php', {
+      method: 'GET'
+    });
+    
+    return this.handleResponse(response);
   }
 }

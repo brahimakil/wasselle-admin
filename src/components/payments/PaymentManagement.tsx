@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ApiService, Payment, User } from '../../utils/api';
+import { ApiService, Payment, User, PaymentMethod } from '../../utils/api';
 
 const PaymentManagement: React.FC = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -23,10 +23,12 @@ const PaymentManagement: React.FC = () => {
 
   // Track active subscriptions for each driver
   const [driverSubscriptions, setDriverSubscriptions] = useState<{[key: number]: any[]}>({});
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
 
   useEffect(() => {
     fetchPayments();
     fetchDrivers();
+    fetchPaymentMethods();
   }, [filters, pagination.current_page]);
 
   const fetchPayments = async () => {
@@ -89,6 +91,17 @@ const PaymentManagement: React.FC = () => {
       }
     }
     setDriverSubscriptions(subscriptionData);
+  };
+
+  const fetchPaymentMethods = async () => {
+    try {
+      const response = await ApiService.getActivePaymentMethods();
+      if (response.success) {
+        setPaymentMethods(response.payment_methods || []);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch payment methods:', err);
+    }
   };
 
   const handlePaymentAction = async (e: React.FormEvent) => {
@@ -376,6 +389,9 @@ const PaymentManagement: React.FC = () => {
                   Plan Details
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Payment Method
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Current Plan Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -398,14 +414,14 @@ const PaymentManagement: React.FC = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center">
+                  <td colSpan={9} className="px-6 py-12 text-center">
                     <div className="loading-spinner w-6 h-6 border-4 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
                     <p className="mt-2 text-gray-500">Loading payments...</p>
                   </td>
                 </tr>
               ) : payments.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={9} className="px-6 py-12 text-center text-gray-500">
                     No payments found
                   </td>
                 </tr>
@@ -429,6 +445,22 @@ const PaymentManagement: React.FC = () => {
                       <div>
                         <div className="text-sm font-medium text-gray-900">{payment.plan_name}</div>
                         <div className="text-sm text-gray-500">{payment.duration_days} days</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0">
+                          <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                            <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div className="ml-3">
+                          <div className="text-sm font-medium text-gray-900">
+                            {payment.payment_method_name || 'Not specified'}
+                          </div>
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -539,6 +571,7 @@ const PaymentManagement: React.FC = () => {
                 <div className="mt-2 text-sm text-gray-600">
                   <p><strong>Driver:</strong> {selectedPayment.driver_name}</p>
                   <p><strong>Plan:</strong> {selectedPayment.plan_name}</p>
+                  <p><strong>Payment Method:</strong> {selectedPayment.payment_method_name || 'Not specified'}</p>
                   <p><strong>Amount:</strong> {formatPrice(selectedPayment.price)}</p>
                   <p><strong>Transaction ID:</strong> {selectedPayment.transaction_id}</p>
                 </div>

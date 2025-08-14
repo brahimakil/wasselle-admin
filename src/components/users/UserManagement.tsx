@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ApiService, User, Plan } from '../../utils/api';
+import { ApiService, User, Plan, PaymentMethod } from '../../utils/api';
 
 const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -48,14 +48,19 @@ const UserManagement: React.FC = () => {
   const [createPaymentForm, setCreatePaymentForm] = useState({
     driver_id: 0,
     plan_id: 0,
+    payment_method_id: 0,
     transaction_id: '',
     status: 'approved' as 'pending' | 'approved' | 'rejected',
     admin_note: ''
   });
 
+  // Payment methods state
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+
   useEffect(() => {
     fetchUsers();
     fetchPlans();
+    fetchPaymentMethods(); // Add this line
   }, [filters, pagination.current_page]);
 
   const fetchUsers = async () => {
@@ -113,6 +118,17 @@ const UserManagement: React.FC = () => {
       }
     } catch (err) {
       console.error('Failed to fetch plans:', err);
+    }
+  };
+
+  const fetchPaymentMethods = async () => {
+    try {
+      const response = await ApiService.getActivePaymentMethods();
+      if (response.success) {
+        setPaymentMethods(response.payment_methods || []);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch payment methods:', err);
     }
   };
 
@@ -187,6 +203,11 @@ const UserManagement: React.FC = () => {
       return;
     }
     
+    if (createPaymentForm.payment_method_id === 0) {
+      setError('Please select a payment method');
+      return;
+    }
+
     if (!createPaymentForm.transaction_id.trim()) {
       setError('Please enter a transaction ID');
       return;
@@ -225,6 +246,7 @@ const UserManagement: React.FC = () => {
         setCreatePaymentForm({
           driver_id: 0,
           plan_id: 0,
+          payment_method_id: 0,
           transaction_id: '',
           status: 'approved',
           admin_note: ''
@@ -937,13 +959,33 @@ const UserManagement: React.FC = () => {
               </div>
 
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method *</label>
+                <select
+                  value={createPaymentForm.payment_method_id}
+                  onChange={(e) => setCreatePaymentForm(prev => ({ ...prev, payment_method_id: parseInt(e.target.value) }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                >
+                  <option value={0}>Select Payment Method</option>
+                  {paymentMethods.map(method => (
+                    <option key={method.id} value={method.id}>
+                      {method.name}
+                    </option>
+                  ))}
+                </select>
+                {paymentMethods.length === 0 && (
+                  <p className="text-xs text-gray-500 mt-1">No payment methods available</p>
+                )}
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Transaction ID *</label>
                 <input
                   type="text"
                   value={createPaymentForm.transaction_id}
                   onChange={(e) => setCreatePaymentForm(prev => ({ ...prev, transaction_id: e.target.value }))}
-                  placeholder="Enter payment transaction ID"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter transaction ID"
                   required
                 />
               </div>

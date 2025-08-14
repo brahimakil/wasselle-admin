@@ -7,6 +7,7 @@ import Header from './components/layout/Header';
 import Dashboard from './components/dashboard/Dashboard';
 import PlanManagement from './components/plans/PlanManagement';
 import PaymentManagement from './components/payments/PaymentManagement';
+import PaymentMethodsManagement from './components/payments/PaymentMethodsManagement';
 import PostManagement from './components/posts/PostManagement';
 import CountryManagement from './components/countries/CountryManagement';
 import NotificationManagement from './components/notifications/NotificationManagement';
@@ -41,6 +42,8 @@ const DashboardLayout: React.FC = () => {
         return <PlanManagement />;
       case 'payments':
         return <PaymentManagement />;
+      case 'payment-methods':
+        return <PaymentMethodsManagement />;
       case 'posts':
         return <PostManagement />;
       case 'countries':
