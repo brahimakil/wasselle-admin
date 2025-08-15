@@ -112,7 +112,7 @@ const DriverManagement: React.FC = () => {
   const fetchDriverPaymentMethods = async () => {
     try {
       const token = localStorage.getItem('adminToken'); // or however you get the token
-      const response = await fetch('/api/admin/drivers/payment-methods.php', {
+      const response = await fetch('/api/admin/users/payment-methods.php', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
