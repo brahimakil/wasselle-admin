@@ -322,24 +322,21 @@ const DriverManagement: React.FC = () => {
                     payment.id, 
                     `Plan replaced by admin on ${new Date().toLocaleString()}`
                   );
-                  console.log(`✅ Rejected old payment: ${payment.transaction_id}`);
-                } catch (paymentErr) {
-                  console.warn(`⚠️ Failed to reject payment ${payment.id}:`, paymentErr);
+                } catch (rejectErr) {
+                  console.warn('Failed to reject old payment:', rejectErr);
                 }
               }
             }
-          } catch (paymentErr) {
-            console.warn('Failed to reject old payments:', paymentErr);
+          } catch (paymentsErr) {
+            console.warn('Failed to fetch/reject old payments:', paymentsErr);
           }
-          
-        } catch (removeErr) {
-          console.error('Failed to remove old plan:', removeErr);
-          setError('Failed to remove existing plan. Please try again.');
+        } catch (error: any) {
+          setError(`Failed to remove existing plan: ${error.message}`);
           return;
         }
       }
       
-      // Step 2: Create payment record
+      // Step 2: Create payment record - this now handles subscription creation automatically
       const response = await ApiService.createPayment({
         ...createPaymentForm,
         admin_note: createPaymentForm.admin_note || 'Admin-created payment - auto-approved'
@@ -347,28 +344,10 @@ const DriverManagement: React.FC = () => {
       console.log('Payment creation response:', response);
       
       if (response.success) {
-        // Step 3: If approved, create new subscription
-        if (createPaymentForm.status === 'approved') {
-          try {
-            const subscriptionResponse = await ApiService.assignDriverToPlan({
-              driver_id: createPaymentForm.driver_id,
-              plan_id: createPaymentForm.plan_id,
-              start_date: new Date().toISOString().split('T')[0]
-            });
-            
-            if (subscriptionResponse.success) {
-              console.log('✅ New subscription created successfully:', subscriptionResponse.message);
-            } else {
-              throw new Error(subscriptionResponse.message || 'Failed to create subscription');
-            }
-            
-          } catch (subscriptionErr: any) {
-            console.error('Failed to create subscription:', subscriptionErr);
-            setError('Payment created but failed to activate subscription: ' + subscriptionErr.message);
-            return;
-          }
-        }
+        // REMOVE THE SUBSCRIPTION CREATION STEP - the payment API now handles this automatically
+        // No need to call assignDriverToPlan anymore!
         
+        console.log('✅ Payment and subscription created successfully');
         closeCreatePaymentModal();
         
         // IMPORTANT: Refresh all data
@@ -387,8 +366,7 @@ const DriverManagement: React.FC = () => {
         setError(response.message || 'Failed to create payment');
       }
     } catch (err: any) {
-      console.error('Payment creation error:', err);
-      setError(err.message || 'Failed to create payment');
+      setError(err.message || 'An error occurred');
     }
   };
 
