@@ -606,14 +606,6 @@ const DriverManagement: React.FC = () => {
   // Filter users based on payment method if filter is applied
   const filteredUsers = users; // No filtering needed since we removed payment method filter
 
-  // Add this right before the return statement (around line 608)
-  console.log('Current driverPaymentMethods state:', driverPaymentMethods);
-  console.log('Filtered users:', filteredUsers.map(u => ({
-    id: u.id,
-    name: u.name,
-    paymentMethod: driverPaymentMethods[u.id]
-  })));
-
   return (
     <div className="space-y-6 fade-in">
       {/* Header */}
