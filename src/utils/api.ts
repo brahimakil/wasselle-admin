@@ -1158,4 +1158,41 @@ export class ApiService {
     search?: string;
   } = {}): Promise<ApiResponse> {
     const queryParams = new URLSearchParams();
+    
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        queryParams.append(key, String(value));
+      }
+    });
+
+    const response = await this.makeProxyRequest(`admin/vehicles/list.php?${queryParams}`, {
+      method: 'GET',
+      headers: this.getAuthHeaders()
+    });
+    
+    return this.handleResponse(response);
+  }
+
+  static async updateVehicleStatus(data: {
+    vehicle_id: number;
+    status: 'approved' | 'rejected';
+    rejection_reason?: string;
+  }): Promise<ApiResponse> {
+    const response = await this.makeProxyRequest('admin/vehicles/update-status.php', {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    
+    return this.handleResponse(response);
+  }
+
+  static async getVehicleById(id: number): Promise<ApiResponse> {
+    const response = await this.makeProxyRequest(`admin/vehicles/get.php?id=${id}`, {
+      method: 'GET',
+      headers: this.getAuthHeaders()
+    });
+    
+    return this.handleResponse(response);
+  }
 }
