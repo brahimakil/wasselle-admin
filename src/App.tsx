@@ -13,6 +13,7 @@ import CountryManagement from './components/countries/CountryManagement';
 import NotificationManagement from './components/notifications/NotificationManagement';
 import DriverManagement from './components/users/DriverManagement';
 import RiderManagement from './components/users/RiderManagement';
+import VehicleManagement from './components/vehicles/VehicleManagement';
 import './App.css';
 
 // Main Dashboard Layout
@@ -38,6 +39,8 @@ const DashboardLayout: React.FC = () => {
         return <DriverManagement />;
       case 'riders':
         return <RiderManagement />;
+      case 'vehicles':
+        return <VehicleManagement />;
       case 'plans':
         return <PlanManagement />;
       case 'payments':

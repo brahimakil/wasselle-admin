@@ -42,12 +42,12 @@ const DriverManagement: React.FC = () => {
     name: '',
     email: '',
     password: '',
-    role: 'driver' as 'driver' | 'rider',
     phone: '',
     dob: '',
     place_of_living: '',
     face_photo: undefined as File | undefined,
-    passport_photo: undefined as File | undefined
+    passport_photo: undefined as File | undefined,
+    driver_license_photo: undefined as File | undefined  // Add this line
   });
 
   // Add view modal state
@@ -388,12 +388,12 @@ const DriverManagement: React.FC = () => {
           name: '',
           email: '',
           password: '',
-          role: 'driver',
           phone: '',
           dob: '',
           place_of_living: '',
           face_photo: undefined,
-          passport_photo: undefined
+          passport_photo: undefined,
+          driver_license_photo: undefined  // Add this line
         });
         fetchUsers();
         alert('Driver created successfully!');
@@ -1261,6 +1261,15 @@ const DriverManagement: React.FC = () => {
                   className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Driver License Photo</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setCreateForm(prev => ({ ...prev, driver_license_photo: e.target.files?.[0] }))}
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
               <div className="flex justify-end space-x-3">
                 <button
                   type="button"
@@ -1270,12 +1279,12 @@ const DriverManagement: React.FC = () => {
                       name: '',
                       email: '',
                       password: '',
-                      role: 'driver',
                       phone: '',
                       dob: '',
                       place_of_living: '',
                       face_photo: undefined,
-                      passport_photo: undefined
+                      passport_photo: undefined,
+                      driver_license_photo: undefined  // Add this line
                     });
                   }}
                   className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
@@ -1424,6 +1433,26 @@ const DriverManagement: React.FC = () => {
                   ) : (
                     <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
                       <p className="text-gray-500">No passport/ID photo uploaded</p>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-2">Driver License Photo</label>
+                  {viewUser.driver_license_photo ? (
+                    <div className="border rounded-lg p-2">
+                      <img 
+                        src={`/api/proxy?path=uploads/image.php&image=${encodeURIComponent(viewUser.driver_license_photo)}`}
+                        alt="Driver License"
+                        className="w-full h-48 object-cover rounded"
+                        onError={(e) => {
+                          e.currentTarget.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><rect width="200" height="200" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%236b7280">No Image</text></svg>';
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                      <p className="text-gray-500">No driver license photo uploaded</p>
                     </div>
                   )}
                 </div>

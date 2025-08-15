@@ -46,6 +46,16 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onPageChange, isOpen, onT
       )
     },
     {
+      id: 'vehicles',
+      name: 'Vehicle Management',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m0 0a2 2 0 104 0m0 0h3a1 1 0 001-1V10M9 21h6" />
+        </svg>
+      )
+    },
+    {
       id: 'payment-methods',
       name: 'Payment Methods',
       icon: (

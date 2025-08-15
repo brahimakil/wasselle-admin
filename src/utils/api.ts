@@ -15,6 +15,7 @@ export interface ApiResponse<T = any> {
   posts?: Post[];
   countries?: Country[];
   notifications?: Notification[];
+  vehicles?: Vehicle[];
   country?: Country; // Add this line
   unread_count?: number;
   plan?: any;
@@ -32,6 +33,7 @@ export interface ApiResponse<T = any> {
     total_payments?: number;
     total_posts?: number;
     total_methods?: number;
+    total_vehicles?: number;
     total?: number;
     limit: number;
     per_page?: number;
@@ -56,6 +58,7 @@ export interface User {
   place_of_living?: string;
   face_photo?: string;
   passport_photo?: string;
+  driver_license_photo?: string;  // Add this line
   role: 'rider' | 'driver';
   is_verified: number;
   is_banned: number;
@@ -230,6 +233,29 @@ export interface DriverRatingsResponse {
     total: number;
     total_pages: number;
   };
+}
+
+export interface Vehicle {
+  id: number;
+  driver_id: number;
+  driver_name?: string;
+  driver_email?: string;
+  vehicle_type: 'car' | 'motorcycle' | 'van' | 'truck';
+  license_plate: string;
+  brand?: string;
+  model?: string;
+  year?: number;
+  color?: string;
+  doors?: '2' | '4';
+  seats?: number;
+  description?: string;
+  photo1: string;
+  photo2: string;
+  registration_photo: string;
+  status: 'pending' | 'approved' | 'rejected';
+  rejection_reason?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export class ApiService {
@@ -1120,4 +1146,16 @@ export class ApiService {
     
     return this.handleResponse(response);
   }
+
+  // Vehicle Management APIs
+  static async getVehicles(params: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    vehicle_type?: string;
+    brand?: string;
+    model?: string;
+    search?: string;
+  } = {}): Promise<ApiResponse> {
+    const queryParams = new URLSearchParams();
 }
