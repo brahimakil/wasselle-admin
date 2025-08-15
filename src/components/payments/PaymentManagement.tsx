@@ -104,7 +104,7 @@ const PaymentManagement: React.FC = () => {
     }
   };
 
-  // Update the handlePaymentAction function to properly refresh driver data (around line 123)
+  // Completely remove all the blocking logic from handlePaymentAction (around line 123)
   const handlePaymentAction = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -113,7 +113,7 @@ const PaymentManagement: React.FC = () => {
     try {
       setError('');
       
-      // Don't block admin actions - remove all the blocking logic
+      // REMOVE ALL THE BLOCKING LOGIC - just process the action directly
       const response = actionType === 'approve' 
         ? await ApiService.approvePayment(selectedPayment.id, adminNote)
         : await ApiService.rejectPayment(selectedPayment.id, adminNote);
@@ -122,13 +122,7 @@ const PaymentManagement: React.FC = () => {
         setShowModal(false);
         setSelectedPayment(null);
         setAdminNote('');
-        fetchPayments(); // Refresh payments
-        
-        // IMPORTANT: Trigger a refresh of driver data if this affects active plans
-        if (window.location.pathname.includes('drivers') || window.location.pathname.includes('users')) {
-          // Signal other components to refresh
-          window.dispatchEvent(new CustomEvent('refreshDriverData'));
-        }
+        fetchPayments();
       } else {
         setError(response.message || `Failed to ${actionType} payment`);
       }
@@ -183,38 +177,29 @@ const PaymentManagement: React.FC = () => {
     }
   };
 
-  // Update the getStatusBadge function to not show protection for ANY admin-created payments
+  // Simplify getStatusBadge - no more protection warnings
   const getStatusBadge = (payment: Payment) => {
-    let statusElement;
-    
     switch (payment.status) {
       case 'pending':
-        statusElement = <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-full">Pending</span>;
-        break;
+        return <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-full">Pending</span>;
         
       case 'approved':
         switch (payment.payment_subscription_status) {
           case 'active':
-            statusElement = <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">✓ Active Plan</span>;
-            break;
+            return <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">✓ Active Plan</span>;
           case 'superseded':
           case 'removed':
-            statusElement = <span className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-full">Approved (Inactive)</span>;
-            break;
+            return <span className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-full">Approved (Inactive)</span>;
           default:
-            statusElement = <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">Approved</span>;
+            return <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">Approved</span>;
         }
-        break;
         
       case 'rejected':
-        statusElement = <span className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded-full">Rejected</span>;
-        break;
+        return <span className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded-full">Rejected</span>;
         
       default:
-        statusElement = <span className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-full">{payment.status}</span>;
+        return <span className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-full">{payment.status}</span>;
     }
-
-    return statusElement;
   };
 
   const getDriverPlanInfo = (payment: Payment) => {
@@ -528,19 +513,6 @@ const PaymentManagement: React.FC = () => {
                   <p><strong>Transaction ID:</strong> {selectedPayment.transaction_id}</p>
                 </div>
               </div>
-
-              {/* Show protection warning if applicable */}
-              {actionType === 'approve' && (() => {
-                const driverSubs = driverSubscriptions[selectedPayment.driver_id] || [];
-                const activeSub = driverSubs.find(sub => sub.is_active === 1);
-                return activeSub ? (
-                  <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded text-sm text-orange-700">
-                    <strong>🛡️ Protected Payment Override:</strong><br/>
-                    This driver has an active plan: <strong>{activeSub.plan_name}</strong> (expires {formatDate(activeSub.end_date)})<br/>
-                    Approving will safely replace the current plan with the new one.
-                  </div>
-                ) : null;
-              })()}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

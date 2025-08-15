@@ -11,7 +11,6 @@ const DriverManagement: React.FC = () => {
   const [filters, setFilters] = useState({
     search: '',
     gender: '',
-    payment_method: '',
     is_verified: '',
     is_banned: '',
     account_status: ''
@@ -343,7 +342,7 @@ const DriverManagement: React.FC = () => {
       // Step 2: Create payment record
       const response = await ApiService.createPayment({
         ...createPaymentForm,
-        admin_note: createPaymentForm.admin_note || 'Admin-created payment'
+        admin_note: createPaymentForm.admin_note || 'Admin-created payment - auto-approved'
       });
       console.log('Payment creation response:', response);
       
@@ -605,13 +604,7 @@ const DriverManagement: React.FC = () => {
   };
 
   // Filter users based on payment method if filter is applied
-  const filteredUsers = users.filter(user => {
-    if (!filters.payment_method) return true;
-    const userPaymentMethod = driverPaymentMethods[user.id];
-    // Don't include drivers with no payment method or no payments in the filter
-    if (!userPaymentMethod || userPaymentMethod === 'NO_PAYMENT_METHOD') return false;
-    return userPaymentMethod === filters.payment_method;
-  });
+  const filteredUsers = users; // No filtering needed since we removed payment method filter
 
   // Add this right before the return statement (around line 608)
   console.log('Current driverPaymentMethods state:', driverPaymentMethods);
