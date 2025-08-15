@@ -380,7 +380,10 @@ const DriverManagement: React.FC = () => {
 
     try {
       setError('');
-      const response = await ApiService.createUser(createForm);
+      const response = await ApiService.createUser({
+        ...createForm,
+        role: 'driver'  // Add this line
+      });
       
       if (response.success) {
         setShowCreateModal(false);

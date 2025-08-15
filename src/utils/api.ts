@@ -420,6 +420,7 @@ export class ApiService {
     place_of_living?: string;
     face_photo?: File;
     passport_photo?: File;
+    driver_license_photo?: File;  // Add this line
   }): Promise<ApiResponse> {
     
     // Helper function to convert file to base64
@@ -441,6 +442,8 @@ export class ApiService {
     let facePhotoFilename = '';
     let passportPhotoBase64 = '';
     let passportPhotoFilename = '';
+    let driverLicensePhotoBase64 = '';
+    let driverLicensePhotoFilename = '';
 
     if (userData.face_photo) {
       facePhotoBase64 = await fileToBase64(userData.face_photo);
@@ -450,6 +453,11 @@ export class ApiService {
     if (userData.passport_photo) {
       passportPhotoBase64 = await fileToBase64(userData.passport_photo);
       passportPhotoFilename = userData.passport_photo.name;
+    }
+
+    if (userData.driver_license_photo) {
+      driverLicensePhotoBase64 = await fileToBase64(userData.driver_license_photo);
+      driverLicensePhotoFilename = userData.driver_license_photo.name;
     }
 
     // Create JSON payload
@@ -464,7 +472,9 @@ export class ApiService {
       face_photo_base64: facePhotoBase64,
       face_photo_filename: facePhotoFilename,
       passport_photo_base64: passportPhotoBase64,
-      passport_photo_filename: passportPhotoFilename
+      passport_photo_filename: passportPhotoFilename,
+      driver_license_photo_base64: driverLicensePhotoBase64,
+      driver_license_photo_filename: driverLicensePhotoFilename
     };
 
     const response = await this.makeProxyRequest('user/register-with-documents.php', {
@@ -489,6 +499,7 @@ export class ApiService {
     place_of_living?: string;
     face_photo?: File;
     passport_photo?: File;
+    driver_license_photo?: File;  // Add this line
   }): Promise<ApiResponse> {
     
     // Helper function to convert file to base64
@@ -510,6 +521,8 @@ export class ApiService {
     let facePhotoFilename = '';
     let passportPhotoBase64 = '';
     let passportPhotoFilename = '';
+    let driverLicensePhotoBase64 = '';
+    let driverLicensePhotoFilename = '';
 
     if (userData.face_photo) {
       facePhotoBase64 = await fileToBase64(userData.face_photo);
@@ -519,6 +532,11 @@ export class ApiService {
     if (userData.passport_photo) {
       passportPhotoBase64 = await fileToBase64(userData.passport_photo);
       passportPhotoFilename = userData.passport_photo.name;
+    }
+
+    if (userData.driver_license_photo) {
+      driverLicensePhotoBase64 = await fileToBase64(userData.driver_license_photo);
+      driverLicensePhotoFilename = userData.driver_license_photo.name;
     }
 
     // Create JSON payload
@@ -533,7 +551,9 @@ export class ApiService {
       face_photo_base64: facePhotoBase64,
       face_photo_filename: facePhotoFilename,
       passport_photo_base64: passportPhotoBase64,
-      passport_photo_filename: passportPhotoFilename
+      passport_photo_filename: passportPhotoFilename,
+      driver_license_photo_base64: driverLicensePhotoBase64,
+      driver_license_photo_filename: driverLicensePhotoFilename
     };
 
     const response = await this.makeProxyRequest('admin/users/create.php', {
