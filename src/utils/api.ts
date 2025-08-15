@@ -126,6 +126,7 @@ export interface PaymentMethod {
   deleted_at?: string;
   total_payments?: number;
   approved_payments?: number;
+  active_payments?: number;
 }
 
 export interface Post {

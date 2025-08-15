@@ -270,7 +270,8 @@ const PaymentMethodsManagement: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
                         <div>Total: {method.total_payments || 0}</div>
-                        <div className="text-green-600">Approved: {method.approved_payments || 0}</div>
+                        <div className="text-blue-600">Approved: {method.approved_payments || 0}</div>
+                        <div className="text-green-600 font-medium">Active: {method.active_payments || 0}</div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
