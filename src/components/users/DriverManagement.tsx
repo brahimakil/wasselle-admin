@@ -74,9 +74,6 @@ const DriverManagement: React.FC = () => {
   // Add state for payment methods
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
 
-  // Add state to store driver payment methods
-  const [driverPaymentMethods, setDriverPaymentMethods] = useState<{[key: number]: string}>({});
-
   // Add function to check driver's current plan when selected
   const handleDriverSelection = (driverId: number) => {
     setCreatePaymentForm(prev => ({ ...prev, driver_id: driverId }));
@@ -107,29 +104,6 @@ const DriverManagement: React.FC = () => {
     });
     setDriverHasActivePlan(false);
     setActiveDriverPlan(null);
-  };
-
-  const fetchDriverPaymentMethods = async () => {
-    try {
-      const token = localStorage.getItem('adminToken');
-      const response = await fetch('http://161.97.179.72/wasselle/api/admin/users/payment-methods.php', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      const data = await response.json();
-      
-      if (data.success) {
-        setDriverPaymentMethods(data.driver_payment_methods || {});
-        console.log('Driver payment methods loaded:', data.driver_payment_methods);
-      } else {
-        console.warn('Failed to fetch driver payment methods:', data.message);
-      }
-    } catch (error) {
-      console.error('Error fetching driver payment methods:', error);
-    }
   };
 
   const fetchUsers = async () => {
@@ -200,12 +174,7 @@ const DriverManagement: React.FC = () => {
   useEffect(() => {
     fetchUsers();
     fetchPaymentMethods();
-    fetchDriverPaymentMethods(); // Add this new call
   }, [filters, pagination.current_page]);
-
-  useEffect(() => {
-    fetchDriverPaymentMethods();
-  }, []);
 
   useEffect(() => {
     // Fetch plans for payment creation
@@ -220,7 +189,6 @@ const DriverManagement: React.FC = () => {
   useEffect(() => {
     const handleRefresh = () => {
       fetchUsers();
-      fetchDriverPaymentMethods();
     };
     
     window.addEventListener('refreshDriverData', handleRefresh);
@@ -406,7 +374,6 @@ const DriverManagement: React.FC = () => {
         
         // IMPORTANT: Refresh all data
         await fetchUsers();
-        await fetchDriverPaymentMethods();
         
         const selectedDriver = users.find(u => u.id === createPaymentForm.driver_id);
         const selectedPlan = plans.find(p => p.id === createPaymentForm.plan_id);
@@ -684,7 +651,7 @@ const DriverManagement: React.FC = () => {
 
       {/* Filters */}
       <div className="bg-white p-4 rounded-lg shadow">
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
             <input
@@ -705,21 +672,6 @@ const DriverManagement: React.FC = () => {
               <option value="">All Genders</option>
               <option value="male">Male</option>
               <option value="female">Female</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
-            <select
-              value={filters.payment_method}
-              onChange={(e) => setFilters(prev => ({ ...prev, payment_method: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Payment Methods</option>
-              {paymentMethods.map(method => (
-                <option key={method.id} value={method.name}>
-                  {method.name}
-                </option>
-              ))}
             </select>
           </div>
           <div>
@@ -778,7 +730,6 @@ const DriverManagement: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Driver</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gender</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Method</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Plan</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joined</th>
@@ -788,11 +739,11 @@ const DriverManagement: React.FC = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="px-6 py-4 text-center text-gray-500">Loading drivers...</td>
+                  <td colSpan={7} className="px-6 py-4 text-center text-gray-500">Loading drivers...</td>
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-6 py-4 text-center text-gray-500">No drivers found</td>
+                  <td colSpan={7} className="px-6 py-4 text-center text-gray-500">No drivers found</td>
                 </tr>
               ) : (
                 filteredUsers.map(user => {
@@ -830,37 +781,6 @@ const DriverManagement: React.FC = () => {
                         }`}>
                           {user.gender ? user.gender.charAt(0).toUpperCase() + user.gender.slice(1) : 'Not specified'}
                         </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0">
-                            <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                              <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                              </svg>
-                            </div>
-                          </div>
-                          <div className="ml-3">
-                            <div className="text-sm font-medium text-gray-900">
-                              {(() => {
-                                const paymentMethod = driverPaymentMethods[user.id];
-                                if (!paymentMethod) {
-                                  return <span className="text-gray-500 italic">No payments yet</span>;
-                                } else if (paymentMethod === 'NO_PAYMENT_METHOD') {
-                                  return <span className="text-orange-500 italic">No payment method</span>;
-                                } else {
-                                  return paymentMethod;
-                                }
-                              })()}
-                            </div>
-                            {driverPaymentMethods[user.id] && driverPaymentMethods[user.id] !== 'NO_PAYMENT_METHOD' && (
-                              <div className="text-xs text-gray-500">Last used method</div>
-                            )}
-                            {driverPaymentMethods[user.id] === 'NO_PAYMENT_METHOD' && (
-                              <div className="text-xs text-orange-500">Old payment without method</div>
-                            )}
-                          </div>
-                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {getStatusBadge(user)}
