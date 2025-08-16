@@ -433,9 +433,6 @@ const VehicleManagement: React.FC = () => {
                           View Details
                         </button>
                         
-                        {/* DEBUG: Log the vehicle status */}
-                        {console.log('🚗 Vehicle ID:', vehicle.id, 'Status:', vehicle.status, 'Type:', typeof vehicle.status)}
-                        
                         {/* Show different action buttons based on current status */}
                         {vehicle.status === 'pending' && (
                           <>
@@ -458,7 +455,6 @@ const VehicleManagement: React.FC = () => {
                           <>
                             <button
                               onClick={() => {
-                                console.log('🚗 APPROVED VEHICLE:', vehicle.id, 'Status:', vehicle.status);
                                 handleStatusAction(vehicle, 'pending');
                               }}
                               className="text-yellow-600 hover:text-yellow-900"
