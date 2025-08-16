@@ -473,8 +473,8 @@ export class ApiService {
       face_photo_filename: facePhotoFilename,
       passport_photo_base64: passportPhotoBase64,
       passport_photo_filename: passportPhotoFilename,
-      driver_license_photo_base64: driverLicensePhotoBase64,
-      driver_license_photo_filename: driverLicensePhotoFilename
+      driver_license_base64: driverLicensePhotoBase64,
+      driver_license_filename: driverLicensePhotoFilename
     };
 
     const response = await this.makeProxyRequest('user/register-with-documents.php', {
@@ -552,8 +552,8 @@ export class ApiService {
       face_photo_filename: facePhotoFilename,
       passport_photo_base64: passportPhotoBase64,
       passport_photo_filename: passportPhotoFilename,
-      driver_license_photo_base64: driverLicensePhotoBase64,
-      driver_license_photo_filename: driverLicensePhotoFilename
+      driver_license_base64: driverLicensePhotoBase64,
+      driver_license_filename: driverLicensePhotoFilename
     };
 
     const response = await this.makeProxyRequest('admin/users/create.php', {
