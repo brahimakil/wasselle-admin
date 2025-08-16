@@ -1,6 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { ApiService, Vehicle } from '../../utils/api';
 
+const BASE_URL = "http://161.97.179.72/wasselle";
+
+const VehiclePhotoCell: React.FC<{ photoPath?: string; alt?: string }> = ({ photoPath, alt = "Vehicle Photo" }) => {
+  if (!photoPath) {
+    return (
+      <div className="w-16 h-16 bg-gray-200 flex items-center justify-center text-gray-500 text-xs">
+        No Image
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={`${BASE_URL}/${photoPath}`}
+      alt={alt}
+      className="w-16 h-16 object-cover rounded"
+      onError={(e) => {
+        (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' fill='%23e5e7eb'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23374141'%3ENo Image%3C/text%3E%3C/svg%3E";
+      }}
+    />
+  );
+};
+
 const VehicleManagement: React.FC = () => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
@@ -299,13 +322,13 @@ const VehicleManagement: React.FC = () => {
                   <tr key={vehicle.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <span className="text-2xl mr-3">{getVehicleIcon(vehicle.vehicle_type)}</span>
-                        <div>
+                        <VehiclePhotoCell photoPath={vehicle.photo1} alt="Vehicle Photo" />
+                        <div className="ml-3">
                           <div className="text-sm font-medium text-gray-900">
                             {vehicle.license_plate}
                           </div>
                           <div className="text-sm text-gray-500 capitalize">
-                            {vehicle.vehicle_type}
+                            {getVehicleIcon(vehicle.vehicle_type)} {vehicle.vehicle_type}
                           </div>
                         </div>
                       </div>
@@ -545,36 +568,57 @@ const VehicleManagement: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <p className="text-sm font-medium text-gray-600 mb-2">Photo 1</p>
-                    <img
-                      src={viewVehicle.photo1}
-                      alt="Vehicle Photo 1"
-                      className="w-full h-48 object-cover rounded-lg border"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = '/api/placeholder/300/200';
-                      }}
-                    />
+                    {viewVehicle.photo1 ? (
+                      <img
+                        src={`${BASE_URL}/${viewVehicle.photo1}`}
+                        alt="Vehicle Photo 1"
+                        className="w-full h-48 object-cover rounded-lg border cursor-pointer"
+                        onClick={() => window.open(`${BASE_URL}/${viewVehicle.photo1}`, '_blank')}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='200'%3E%3Crect width='300' height='200' fill='%23e5e7eb'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23374141'%3ENo Image%3C/text%3E%3C/svg%3E";
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-48 bg-gray-200 flex items-center justify-center text-gray-500 rounded-lg border">
+                        No Photo 1
+                      </div>
+                    )}
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-600 mb-2">Photo 2 (with License Plate)</p>
-                    <img
-                      src={viewVehicle.photo2}
-                      alt="Vehicle Photo 2 with License Plate"
-                      className="w-full h-48 object-cover rounded-lg border"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = '/api/placeholder/300/200';
-                      }}
-                    />
+                    {viewVehicle.photo2 ? (
+                      <img
+                        src={`${BASE_URL}/${viewVehicle.photo2}`}
+                        alt="Vehicle Photo 2 with License Plate"
+                        className="w-full h-48 object-cover rounded-lg border cursor-pointer"
+                        onClick={() => window.open(`${BASE_URL}/${viewVehicle.photo2}`, '_blank')}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='200'%3E%3Crect width='300' height='200' fill='%23e5e7eb'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23374141'%3ENo Image%3C/text%3E%3C/svg%3E";
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-48 bg-gray-200 flex items-center justify-center text-gray-500 rounded-lg border">
+                        No Photo 2
+                      </div>
+                    )}
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-600 mb-2">Registration Photo</p>
-                    <img
-                      src={viewVehicle.registration_photo}
-                      alt="Vehicle Registration"
-                      className="w-full h-48 object-cover rounded-lg border"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = '/api/placeholder/300/200';
-                      }}
-                    />
+                    {viewVehicle.registration_photo ? (
+                      <img
+                        src={`${BASE_URL}/${viewVehicle.registration_photo}`}
+                        alt="Vehicle Registration"
+                        className="w-full h-48 object-cover rounded-lg border cursor-pointer"
+                        onClick={() => window.open(`${BASE_URL}/${viewVehicle.registration_photo}`, '_blank')}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='200'%3E%3Crect width='300' height='200' fill='%23e5e7eb'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23374141'%3ENo Image%3C/text%3E%3C/svg%3E";
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-48 bg-gray-200 flex items-center justify-center text-gray-500 rounded-lg border">
+                        No Registration Photo
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
