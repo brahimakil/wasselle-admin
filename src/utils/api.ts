@@ -1228,59 +1228,56 @@ private static async makeProxyRequest(endpoint: string, options: RequestInit = {
         queryParams.append(key, String(value));
       }
     });
-
-    // Force HTTP call directly to backend
-    const response = await fetch(`http://161.97.179.72/wasselle/api/admin/vehicles/list.php?${queryParams}`, {
+  
+    // Use proxy instead of direct HTTP call
+    const response = await this.makeProxyRequest(`admin/vehicles/list.php?${queryParams}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...this.getAuthHeaders()
-      }
+      headers: this.getAuthHeaders()
     });
     
     return this.handleResponse(response);
   }
+  
 
-  static async updateVehicleStatus(data: {
-    vehicle_id: number;
-    status: 'approved' | 'rejected';
-    rejection_reason?: string;
-  }): Promise<ApiResponse> {
-    try {
-      console.log('🚗 updateVehicleStatus called with:', data);
-      console.log('🚗 Auth headers:', this.getAuthHeaders());
-      
-      // Force HTTP call directly to backend
-      const response = await fetch('http://161.97.179.72/wasselle/api/admin/vehicles/update-status.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...this.getAuthHeaders()
-        },
-        body: JSON.stringify(data)
-      });
-      
-      console.log('🚗 Response status:', response.status);
-      console.log('🚗 Response ok:', response.ok);
-      console.log('🚗 Response headers:', Object.fromEntries(response.headers.entries()));
-      
-      return this.handleResponse(response);
-    } catch (error) {
-      console.error('🚗 updateVehicleStatus error:', error);
-      throw error;
-    }
-  }
-
-  static async getVehicleById(id: number): Promise<ApiResponse> {
-    // Force HTTP call directly to backend
-    const response = await fetch(`http://161.97.179.72/wasselle/api/admin/vehicles/get.php?id=${id}`, {
-      method: 'GET',
+ 
+static async updateVehicleStatus(data: {
+  vehicle_id: number;
+  status: 'approved' | 'rejected';
+  rejection_reason?: string;
+}): Promise<ApiResponse> {
+  try {
+    console.log('🚗 updateVehicleStatus called with:', data);
+    console.log('🚗 Auth headers:', this.getAuthHeaders());
+    
+    // Use proxy instead of direct HTTP call
+    const response = await this.makeProxyRequest('admin/vehicles/update-status.php', {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...this.getAuthHeaders()
-      }
+      },
+      body: JSON.stringify(data)
     });
     
+    console.log('🚗 Response status:', response.status);
+    console.log('🚗 Response ok:', response.ok);
+    
     return this.handleResponse(response);
+  } catch (error) {
+    console.error('🚗 updateVehicleStatus error:', error);
+    throw error;
   }
+}
+
+
+
+static async getVehicleById(id: number): Promise<ApiResponse> {
+  // Use proxy instead of direct HTTP call
+  const response = await this.makeProxyRequest(`admin/vehicles/get.php?id=${id}`, {
+    method: 'GET',
+    headers: this.getAuthHeaders()
+  });
+  
+  return this.handleResponse(response);
+}
 }
