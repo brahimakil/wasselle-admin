@@ -295,14 +295,25 @@ export class ApiService {
 
   // Helper method to make requests through proxy
   private static async makeProxyRequest(endpoint: string, options: RequestInit = {}): Promise<Response> {
-    // For Vercel, we call the proxy function directly
-    return fetch('/api/proxy', {
-      ...options,
-      headers: {
-        ...options.headers,
-        'X-API-Path': endpoint,
-      },
-    });
+    console.log('🔍 makeProxyRequest called with:', { endpoint, options });
+    
+    try {
+      const response = await fetch('/api/proxy', {
+        ...options,
+        headers: {
+          ...options.headers,
+          'X-API-Path': endpoint,
+        },
+      });
+      
+      console.log('🔍 Proxy response status:', response.status);
+      console.log('🔍 Proxy response ok:', response.ok);
+      
+      return response;
+    } catch (error) {
+      console.error('🔍 Proxy request failed:', error);
+      throw error;
+    }
   }
 
   // Admin Authentication
@@ -1197,21 +1208,41 @@ export class ApiService {
     return this.handleResponse(response);
   }
 
+  // Update the updateVehicleStatus method with better error handling and debugging
   static async updateVehicleStatus(data: {
     vehicle_id: number;
     status: 'approved' | 'rejected';
     rejection_reason?: string;
   }): Promise<ApiResponse> {
-    const response = await this.makeProxyRequest('admin/vehicles/update-status.php', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...this.getAuthHeaders()
-      },
-      body: JSON.stringify(data)
-    });
-    
-    return this.handleResponse(response);
+    try {
+      console.log('🚗 updateVehicleStatus called with:', data);
+      console.log('🚗 Auth headers:', this.getAuthHeaders());
+      
+      const response = await this.makeProxyRequest('admin/vehicles/update-status.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.getAuthHeaders()
+        },
+        body: JSON.stringify(data)
+      });
+      
+      console.log(' Response status:', response.status);
+      console.log('🚗 Response ok:', response.ok);
+      console.log('🚗 Response headers:', Object.fromEntries(response.headers.entries()));
+      
+      // Check if response is ok before trying to parse
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('🚗 HTTP Error Response:', errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText || 'Unknown error'}`);
+      }
+      
+      return this.handleResponse(response);
+    } catch (error) {
+      console.error('🚗 updateVehicleStatus error:', error);
+      throw error;
+    }
   }
 
   static async getVehicleById(id: number): Promise<ApiResponse> {
