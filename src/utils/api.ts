@@ -293,29 +293,57 @@ export class ApiService {
     return data;
   }
 
-  // Helper method to make requests through proxy
-  private static async makeProxyRequest(endpoint: string, options: RequestInit = {}): Promise<Response> {
-    console.log('🔍 makeProxyRequest called with:', { endpoint, options });
+  // Replace your makeProxyRequest method in api.ts with this improved version
+
+private static async makeProxyRequest(endpoint: string, options: RequestInit = {}): Promise<Response> {
+  console.log('🔍 makeProxyRequest called with:', { endpoint, options });
+  
+  try {
+    // First, try the proxy approach
+    const response = await fetch('/api/proxy', {
+      ...options,
+      headers: {
+        ...options.headers,
+        'X-API-Path': endpoint,
+      },
+    });
     
-    try {
-      const response = await fetch('/api/proxy', {
+    console.log('🔍 Proxy response status:', response.status);
+    console.log('🔍 Proxy response ok:', response.ok);
+    
+    // If proxy worked, return it
+    if (response.ok) {
+      return response;
+    }
+    
+    // If proxy failed, log the error and try direct approach (for development only)
+    console.warn('🔍 Proxy failed, trying direct approach...');
+    const responseText = await response.text();
+    console.warn('🔍 Proxy error response:', responseText);
+    
+    // For development: try direct HTTP call (this won't work in production due to CORS)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 Attempting direct call (development only)...');
+      
+      const directResponse = await fetch(`http://161.97.179.72/wasselle/api/${endpoint}`, {
         ...options,
-        headers: {
-          ...options.headers,
-          'X-API-Path': endpoint,
-        },
+        mode: 'cors'
       });
       
-      console.log('🔍 Proxy response status:', response.status);
-      console.log('🔍 Proxy response ok:', response.ok);
-      
-      return response;
-    } catch (error) {
-      console.error('🔍 Proxy request failed:', error);
-      throw error;
+      if (directResponse.ok) {
+        console.log('🔍 Direct call succeeded!');
+        return directResponse;
+      }
     }
+    
+    // If both failed, throw the original proxy error
+    throw new Error(`Proxy failed with status ${response.status}: ${responseText}`);
+    
+  } catch (error) {
+    console.error('🔍 makeProxyRequest failed:', error);
+    throw error;
   }
-
+}
   // Admin Authentication
   static async adminLogin(email: string, password: string): Promise<ApiResponse> {
     const response = await this.makeProxyRequest('admin/login.php', {
