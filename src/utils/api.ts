@@ -1183,7 +1183,7 @@ export class ApiService {
   }
 
   // Update the vehicle management methods to call backend directly instead of using proxy
-  // Vehicle Management APIs
+  // Vehicle Management APIs - Use proxy to avoid mixed content issues
   static async getVehicles(params: {
     page?: number;
     limit?: number;
@@ -1201,13 +1201,10 @@ export class ApiService {
       }
     });
 
-    // Call backend directly instead of using proxy
-    const response = await fetch(`http://161.97.179.72/wasselle/api/admin/vehicles/list.php?${queryParams}`, {
+    // Use proxy to avoid mixed content issues
+    const response = await this.makeProxyRequest(`admin/vehicles/list.php?${queryParams}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...this.getAuthHeaders()
-      }
+      headers: this.getAuthHeaders()
     });
     
     return this.handleResponse(response);
@@ -1222,8 +1219,8 @@ export class ApiService {
       console.log('🚗 updateVehicleStatus called with:', data);
       console.log('🚗 Auth headers:', this.getAuthHeaders());
       
-      // Call backend directly instead of using proxy
-      const response = await fetch('http://161.97.179.72/wasselle/api/admin/vehicles/update-status.php', {
+      // Use proxy to avoid mixed content issues
+      const response = await this.makeProxyRequest('admin/vehicles/update-status.php', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1236,13 +1233,6 @@ export class ApiService {
       console.log('🚗 Response ok:', response.ok);
       console.log('🚗 Response headers:', Object.fromEntries(response.headers.entries()));
       
-      // Check if response is ok before trying to parse
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('🚗 HTTP Error Response:', errorText);
-        throw new Error(`HTTP ${response.status}: ${errorText || 'Unknown error'}`);
-      }
-      
       return this.handleResponse(response);
     } catch (error) {
       console.error('🚗 updateVehicleStatus error:', error);
@@ -1251,13 +1241,10 @@ export class ApiService {
   }
 
   static async getVehicleById(id: number): Promise<ApiResponse> {
-    // Call backend directly instead of using proxy
-    const response = await fetch(`http://161.97.179.72/wasselle/api/admin/vehicles/get.php?id=${id}`, {
+    // Use proxy to avoid mixed content issues
+    const response = await this.makeProxyRequest(`admin/vehicles/get.php?id=${id}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...this.getAuthHeaders()
-      }
+      headers: this.getAuthHeaders()
     });
     
     return this.handleResponse(response);
