@@ -105,9 +105,6 @@ const VehicleManagement: React.FC = () => {
     setShowStatusModal(true);
   };
 
-  // Update the state type to include 'pending'
-  const [statusAction, setStatusAction] = useState<'approved' | 'rejected' | 'pending'>('approved');
-
   // Update the handleUpdateStatus function to handle 'pending' status
   const handleUpdateStatus = async (e: React.FormEvent) => {
     e.preventDefault();
