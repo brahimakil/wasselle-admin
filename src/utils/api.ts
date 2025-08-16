@@ -293,48 +293,28 @@ export class ApiService {
     return data;
   }
 
-
-// Helper method to make requests directly to your API (NO MORE PROXY!)
-private static async makeProxyRequest(endpoint: string, options: RequestInit = {}): Promise<Response> {
-  console.log('🔍 makeProxyRequest called with:', { endpoint, options });
-  
-  // Get auth token
-  const getAuthToken = (): string | null => {
-    return localStorage.getItem('admin_token');
-  };
-  
-  try {
-    // Build the full URL to your actual API
-    const fullUrl = `http://161.97.179.72/wasselle/${endpoint}`;
-    console.log('🔍 Making request to:', fullUrl);
+  // Helper method to make requests through proxy
+  private static async makeProxyRequest(endpoint: string, options: RequestInit = {}): Promise<Response> {
+    console.log('🔍 makeProxyRequest called with:', { endpoint, options });
     
-    // Prepare headers
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-      ...options.headers
-    };
-    
-    // Add auth token if available
-    const token = getAuthToken();
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    try {
+      const response = await fetch('/api/proxy', {
+        ...options,
+        headers: {
+          ...options.headers,
+          'X-API-Path': endpoint,
+        },
+      });
+      
+      console.log('🔍 Proxy response status:', response.status);
+      console.log('🔍 Proxy response ok:', response.ok);
+      
+      return response;
+    } catch (error) {
+      console.error('🔍 Proxy request failed:', error);
+      throw error;
     }
-    
-    const response = await fetch(fullUrl, {
-      ...options,
-      headers,
-      mode: 'cors', // Enable CORS
-    });
-    
-    console.log('🔍 Direct API response status:', response.status);
-    console.log('🔍 Direct API response ok:', response.ok);
-    
-    return response;
-  } catch (error) {
-    console.error('🔍 Direct API request failed:', error);
-    throw error;
   }
-}
 
   // Admin Authentication
   static async adminLogin(email: string, password: string): Promise<ApiResponse> {
@@ -1202,7 +1182,8 @@ private static async makeProxyRequest(endpoint: string, options: RequestInit = {
     return this.handleResponse(response);
   }
 
-  // Vehicle Management APIs - Use proxy to avoid mixed content issues
+  // Update the vehicle management methods to call backend directly instead of using proxy
+  // Vehicle Management APIs - Force HTTP calls to avoid proxy issues
   static async getVehicles(params: {
     page?: number;
     limit?: number;
@@ -1220,10 +1201,13 @@ private static async makeProxyRequest(endpoint: string, options: RequestInit = {
       }
     });
 
-    // Use proxy to avoid mixed content issues
-    const response = await this.makeProxyRequest(`admin/vehicles/list.php?${queryParams}`, {
+    // Force HTTP call directly to backend
+    const response = await fetch(`http://161.97.179.72/wasselle/api/admin/vehicles/list.php?${queryParams}`, {
       method: 'GET',
-      headers: this.getAuthHeaders()
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.getAuthHeaders()
+      }
     });
     
     return this.handleResponse(response);
@@ -1238,8 +1222,8 @@ private static async makeProxyRequest(endpoint: string, options: RequestInit = {
       console.log('🚗 updateVehicleStatus called with:', data);
       console.log('🚗 Auth headers:', this.getAuthHeaders());
       
-      // Use proxy to avoid mixed content issues
-      const response = await this.makeProxyRequest('admin/vehicles/update-status.php', {
+      // Force HTTP call directly to backend
+      const response = await fetch('http://161.97.179.72/wasselle/api/admin/vehicles/update-status.php', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1250,6 +1234,7 @@ private static async makeProxyRequest(endpoint: string, options: RequestInit = {
       
       console.log('🚗 Response status:', response.status);
       console.log('🚗 Response ok:', response.ok);
+      console.log('🚗 Response headers:', Object.fromEntries(response.headers.entries()));
       
       return this.handleResponse(response);
     } catch (error) {
@@ -1259,10 +1244,13 @@ private static async makeProxyRequest(endpoint: string, options: RequestInit = {
   }
 
   static async getVehicleById(id: number): Promise<ApiResponse> {
-    // Use proxy to avoid mixed content issues
-    const response = await this.makeProxyRequest(`admin/vehicles/get.php?id=${id}`, {
+    // Force HTTP call directly to backend
+    const response = await fetch(`http://161.97.179.72/wasselle/api/admin/vehicles/get.php?id=${id}`, {
       method: 'GET',
-      headers: this.getAuthHeaders()
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.getAuthHeaders()
+      }
     });
     
     return this.handleResponse(response);

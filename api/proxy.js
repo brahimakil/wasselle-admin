@@ -34,7 +34,7 @@ module.exports = async function handler(req, res) {
 
     const targetUrl = `http://161.97.179.72/wasselle/api/${apiPath}`;
     
-    console.log(`🔄 ${req.method} ${apiPath}`);
+    console.log(`🔄 ${req.method} ${apiPath} -> ${targetUrl}`);
 
     const headers = {
       'Content-Type': 'application/json',
@@ -51,18 +51,33 @@ module.exports = async function handler(req, res) {
       }
     }
 
+    console.log(`🔄 Request body:`, body);
+    console.log(` Request headers:`, headers);
+
     const response = await fetch(targetUrl, {
       method: req.method,
       headers: headers,
       body: body,
     });
 
+    console.log(`🔄 Backend response status:`, response.status);
+    console.log(`🔄 Backend response ok:`, response.ok);
+
     const responseText = await response.text();
+    console.log(`🔄 Backend response text:`, responseText);
+    
+    // If backend returns an error status, forward it properly
+    if (!response.ok) {
+      console.log(`🔄 Backend error, forwarding status ${response.status}`);
+      return res.status(response.status).send(responseText);
+    }
     
     let responseData;
     try {
       responseData = JSON.parse(responseText);
+      console.log(`🔄 Parsed JSON response:`, responseData);
     } catch (e) {
+      console.log(` Non-JSON response, sending as-is`);
       return res.status(response.status).send(responseText);
     }
 
@@ -70,10 +85,12 @@ module.exports = async function handler(req, res) {
 
   } catch (error) {
     console.error('❌ Proxy error:', error.message);
+    console.error('❌ Proxy error stack:', error.stack);
     return res.status(500).json({ 
       success: false, 
       message: 'Proxy server error', 
-      error: error.message
+      error: error.message,
+      stack: error.stack
     });
   }
 }; 
