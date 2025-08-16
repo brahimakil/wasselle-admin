@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ApiService, Vehicle } from '../../utils/api';
 
-const BASE_URL = "http://161.97.179.72/wasselle";
-
 const VehiclePhotoCell: React.FC<{ photoPath?: string; alt?: string }> = ({ photoPath, alt = "Vehicle Photo" }) => {
   if (!photoPath) {
     return (
@@ -14,7 +12,7 @@ const VehiclePhotoCell: React.FC<{ photoPath?: string; alt?: string }> = ({ phot
 
   return (
     <img
-      src={`${BASE_URL}/${photoPath}`}
+      src={`/api/proxy?path=uploads/image.php&image=${encodeURIComponent(photoPath)}`}
       alt={alt}
       className="w-16 h-16 object-cover rounded"
       onError={(e) => {
@@ -570,12 +568,12 @@ const VehicleManagement: React.FC = () => {
                     <p className="text-sm font-medium text-gray-600 mb-2">Photo 1</p>
                     {viewVehicle.photo1 ? (
                       <img
-                        src={`${BASE_URL}/${viewVehicle.photo1}`}
+                        src={`/api/proxy?path=uploads/image.php&image=${encodeURIComponent(viewVehicle.photo1)}`}
                         alt="Vehicle Photo 1"
                         className="w-full h-48 object-cover rounded-lg border cursor-pointer"
-                        onClick={() => window.open(`${BASE_URL}/${viewVehicle.photo1}`, '_blank')}
+                        onClick={() => window.open(`/api/proxy?path=uploads/image.php&image=${encodeURIComponent(viewVehicle.photo1)}`, '_blank')}
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='200'%3E%3Crect width='300' height='200' fill='%23e5e7eb'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23374141'%3ENo Image%3C/text%3E%3C/svg%3E";
+                          (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200"><rect width="300" height="200" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%236b7280">No Image</text></svg>';
                         }}
                       />
                     ) : (
@@ -588,12 +586,12 @@ const VehicleManagement: React.FC = () => {
                     <p className="text-sm font-medium text-gray-600 mb-2">Photo 2 (with License Plate)</p>
                     {viewVehicle.photo2 ? (
                       <img
-                        src={`${BASE_URL}/${viewVehicle.photo2}`}
+                        src={`/api/proxy?path=uploads/image.php&image=${encodeURIComponent(viewVehicle.photo2)}`}
                         alt="Vehicle Photo 2 with License Plate"
                         className="w-full h-48 object-cover rounded-lg border cursor-pointer"
-                        onClick={() => window.open(`${BASE_URL}/${viewVehicle.photo2}`, '_blank')}
+                        onClick={() => window.open(`/api/proxy?path=uploads/image.php&image=${encodeURIComponent(viewVehicle.photo2)}`, '_blank')}
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='200'%3E%3Crect width='300' height='200' fill='%23e5e7eb'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23374141'%3ENo Image%3C/text%3E%3C/svg%3E";
+                          (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200"><rect width="300" height="200" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%236b7280">No Image</text></svg>';
                         }}
                       />
                     ) : (
@@ -606,12 +604,12 @@ const VehicleManagement: React.FC = () => {
                     <p className="text-sm font-medium text-gray-600 mb-2">Registration Photo</p>
                     {viewVehicle.registration_photo ? (
                       <img
-                        src={`${BASE_URL}/${viewVehicle.registration_photo}`}
+                        src={`/api/proxy?path=uploads/image.php&image=${encodeURIComponent(viewVehicle.registration_photo)}`}
                         alt="Vehicle Registration"
                         className="w-full h-48 object-cover rounded-lg border cursor-pointer"
-                        onClick={() => window.open(`${BASE_URL}/${viewVehicle.registration_photo}`, '_blank')}
+                        onClick={() => window.open(`/api/proxy?path=uploads/image.php&image=${encodeURIComponent(viewVehicle.registration_photo)}`, '_blank')}
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='200'%3E%3Crect width='300' height='200' fill='%23e5e7eb'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23374141'%3ENo Image%3C/text%3E%3C/svg%3E";
+                          (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200"><rect width="300" height="200" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%236b7280">No Image</text></svg>';
                         }}
                       />
                     ) : (
