@@ -456,9 +456,11 @@ const VehicleManagement: React.FC = () => {
                         
                         {vehicle.status === 'approved' && (
                           <>
-                            <span className="text-xs text-gray-500">[DEBUG: APPROVED]</span>
                             <button
-                              onClick={() => handleStatusAction(vehicle, 'pending')}
+                              onClick={() => {
+                                console.log('🚗 APPROVED VEHICLE:', vehicle.id, 'Status:', vehicle.status);
+                                handleStatusAction(vehicle, 'pending');
+                              }}
                               className="text-yellow-600 hover:text-yellow-900"
                             >
                               Set Pending
