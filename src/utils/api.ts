@@ -1182,6 +1182,7 @@ export class ApiService {
     return this.handleResponse(response);
   }
 
+  // Update the vehicle management methods to call backend directly instead of using proxy
   // Vehicle Management APIs
   static async getVehicles(params: {
     page?: number;
@@ -1200,15 +1201,18 @@ export class ApiService {
       }
     });
 
-    const response = await this.makeProxyRequest(`admin/vehicles/list.php?${queryParams}`, {
+    // Call backend directly instead of using proxy
+    const response = await fetch(`http://161.97.179.72/wasselle/api/admin/vehicles/list.php?${queryParams}`, {
       method: 'GET',
-      headers: this.getAuthHeaders()
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.getAuthHeaders()
+      }
     });
     
     return this.handleResponse(response);
   }
 
-  // Update the updateVehicleStatus method with better error handling and debugging
   static async updateVehicleStatus(data: {
     vehicle_id: number;
     status: 'approved' | 'rejected';
@@ -1218,7 +1222,8 @@ export class ApiService {
       console.log('🚗 updateVehicleStatus called with:', data);
       console.log('🚗 Auth headers:', this.getAuthHeaders());
       
-      const response = await this.makeProxyRequest('admin/vehicles/update-status.php', {
+      // Call backend directly instead of using proxy
+      const response = await fetch('http://161.97.179.72/wasselle/api/admin/vehicles/update-status.php', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1246,9 +1251,13 @@ export class ApiService {
   }
 
   static async getVehicleById(id: number): Promise<ApiResponse> {
-    const response = await this.makeProxyRequest(`admin/vehicles/get.php?id=${id}`, {
+    // Call backend directly instead of using proxy
+    const response = await fetch(`http://161.97.179.72/wasselle/api/admin/vehicles/get.php?id=${id}`, {
       method: 'GET',
-      headers: this.getAuthHeaders()
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.getAuthHeaders()
+      }
     });
     
     return this.handleResponse(response);
