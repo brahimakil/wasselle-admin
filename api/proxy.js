@@ -1,4 +1,4 @@
-// Replace your /api/proxy.js with this version that handles all edge cases
+// Replace your /api/proxy.js with this version that handles images properly
 
 export default async function handler(req, res) {
   // Enable CORS
@@ -15,10 +15,40 @@ export default async function handler(req, res) {
   console.log(`🔄 === PROXY REQUEST START ===`);
   console.log(`🔄 Method: ${req.method}`);
   console.log(`🔄 URL: ${req.url}`);
-  console.log(`🔄 Headers: ${JSON.stringify(req.headers, null, 2)}`);
+  console.log(`🔄 Query: ${JSON.stringify(req.query)}`);
 
   try {
-    // Get the API path from headers
+    // Handle image requests differently
+    if (req.query.path && req.query.image) {
+      console.log('🖼️ Handling image request');
+      const imagePath = req.query.image;
+      const imageUrl = `http://161.97.179.72/wasselle/api/uploads/image.php?path=${encodeURIComponent(imagePath)}`;
+      
+      console.log(`🖼️ Fetching image from: ${imageUrl}`);
+      
+      try {
+        const imageResponse = await fetch(imageUrl);
+        
+        if (!imageResponse.ok) {
+          console.log(`🖼️ Image fetch failed: ${imageResponse.status}`);
+          return res.status(404).json({ error: 'Image not found' });
+        }
+        
+        const imageBuffer = await imageResponse.arrayBuffer();
+        const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+        
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Cache-Control', 'public, max-age=31536000');
+        
+        console.log(`🖼️ Image served successfully, type: ${contentType}, size: ${imageBuffer.byteLength}`);
+        return res.status(200).send(Buffer.from(imageBuffer));
+      } catch (imageError) {
+        console.error('🖼️ Image proxy error:', imageError);
+        return res.status(500).json({ error: 'Failed to fetch image' });
+      }
+    }
+
+    // Handle API requests
     const apiPath = req.headers['x-api-path'];
     
     if (!apiPath) {
@@ -50,23 +80,20 @@ export default async function handler(req, res) {
     let requestBody;
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       if (req.body) {
-        // Next.js might have already parsed the body
         if (typeof req.body === 'string') {
           requestBody = req.body;
         } else if (typeof req.body === 'object') {
           requestBody = JSON.stringify(req.body);
         }
         console.log(`🔄 Request body: ${requestBody?.substring(0, 200)}${requestBody?.length > 200 ? '...' : ''}`);
-      } else {
-        console.log('🔄 No request body');
       }
     }
 
     console.log(`🔄 Making request to backend...`);
 
-    // Make request to your backend with timeout
+    // Make request to backend with timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
 
     const backendResponse = await fetch(targetUrl, {
       method: req.method,
@@ -79,12 +106,30 @@ export default async function handler(req, res) {
 
     console.log(`🔄 Backend response status: ${backendResponse.status}`);
     console.log(`🔄 Backend response ok: ${backendResponse.ok}`);
-    console.log(`🔄 Backend response headers:`, Object.fromEntries(backendResponse.headers.entries()));
 
     // Get response text
     const responseText = await backendResponse.text();
     console.log(`🔄 Backend response length: ${responseText.length}`);
-    console.log(`🔄 Backend response (first 500 chars): ${responseText.substring(0, 500)}${responseText.length > 500 ? '...' : ''}`);
+    console.log(`🔄 Backend response: "${responseText}"`);
+
+    // If backend returned an error status (500, 404, etc), but has content
+    if (!backendResponse.ok) {
+      console.log(`❌ Backend returned error status: ${backendResponse.status}`);
+      
+      // Try to parse error response as JSON
+      let errorData;
+      try {
+        errorData = JSON.parse(responseText);
+      } catch {
+        errorData = {
+          success: false,
+          message: `Backend error: ${responseText || 'Unknown error'}`,
+          status: backendResponse.status
+        };
+      }
+      
+      return res.status(backendResponse.status).json(errorData);
+    }
 
     // Check if response is empty or just whitespace
     if (!responseText || responseText.trim() === '') {
@@ -101,44 +146,20 @@ export default async function handler(req, res) {
       });
     }
 
-    // Check for common error patterns
-    if (responseText.includes('404 Not Found') || responseText.includes('No input file specified')) {
-      console.log('❌ Backend endpoint not found');
-      return res.status(404).json({
-        success: false,
-        message: 'Backend endpoint not found',
-        endpoint: apiPath,
-        response: responseText.substring(0, 200)
-      });
-    }
-
-    if (responseText.includes('PHP Parse error') || responseText.includes('Fatal error')) {
-      console.log('❌ Backend PHP error');
-      return res.status(500).json({
-        success: false,
-        message: 'Backend server error',
-        error: responseText.substring(0, 300)
-      });
-    }
-
     // Try to parse as JSON
     let responseData;
     try {
       responseData = JSON.parse(responseText);
       console.log(`✅ Successfully parsed JSON response`);
-      console.log(`✅ Response success: ${responseData.success}`);
     } catch (parseError) {
       console.log(`❌ Failed to parse JSON: ${parseError.message}`);
       console.log(`❌ Raw response: ${responseText}`);
       
-      // Return the raw text with appropriate status
       return res.status(backendResponse.status).send(responseText);
     }
 
     console.log(`🔄 === PROXY REQUEST END ===`);
-
-    // Return the JSON response with the same status code
-    return res.status(backendResponse.status).json(responseData);
+    return res.status(200).json(responseData);
 
   } catch (error) {
     console.error('❌ Proxy error:', error);
@@ -146,25 +167,22 @@ export default async function handler(req, res) {
     if (error.name === 'AbortError') {
       return res.status(504).json({
         success: false,
-        message: 'Backend request timeout',
-        error: 'Request took longer than 30 seconds'
+        message: 'Backend request timeout'
       });
     }
     
     return res.status(500).json({ 
       success: false, 
       message: 'Proxy server error', 
-      error: error.message,
-      type: error.name
+      error: error.message
     });
   }
 }
 
-// Increase body size limit for file uploads
 export const config = {
   api: {
     bodyParser: {
       sizeLimit: '10mb',
     },
   },
-}
+};

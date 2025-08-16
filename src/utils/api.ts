@@ -908,10 +908,11 @@ private static async makeProxyRequest(endpoint: string, options: RequestInit = {
     return this.handleResponse(response);
   }
 
-  // File/Image access
-  static getImageUrl(path: string): string {
-    return `${API_BASE_URL}/uploads/image.php?path=${encodeURIComponent(path)}`;
-  }
+  // File/Image access - Updated to use proxy for images
+static getImageUrl(path: string): string {
+  // Use the proxy to serve images to avoid mixed content issues
+  return `/api/proxy?path=uploads/image.php&image=${encodeURIComponent(path)}`;
+}
 
   // Ensure only one active plan per driver (cleanup function)
   static async enforceOnePlanPerDriver(driver_id: number): Promise<ApiResponse> {
