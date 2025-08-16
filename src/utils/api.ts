@@ -417,6 +417,7 @@ export class ApiService {
     role: 'driver' | 'rider';
     phone?: string;
     dob?: string;
+    gender?: string;
     place_of_living?: string;
     face_photo?: File;
     passport_photo?: File;
@@ -468,6 +469,7 @@ export class ApiService {
       role: userData.role,
       phone: userData.phone || '',
       dob: userData.dob || '',
+      gender: userData.gender || '',
       place_of_living: userData.place_of_living || '',
       face_photo_base64: facePhotoBase64,
       face_photo_filename: facePhotoFilename,
@@ -496,6 +498,7 @@ export class ApiService {
     role: 'driver' | 'rider';
     phone?: string;
     dob?: string;
+    gender?: string;
     place_of_living?: string;
     face_photo?: File;
     passport_photo?: File;
@@ -547,6 +550,7 @@ export class ApiService {
       role: userData.role,
       phone: userData.phone || '',
       dob: userData.dob || '',
+      gender: userData.gender || '',
       place_of_living: userData.place_of_living || '',
       face_photo_base64: facePhotoBase64,
       face_photo_filename: facePhotoFilename,

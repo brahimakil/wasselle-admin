@@ -44,10 +44,11 @@ const DriverManagement: React.FC = () => {
     password: '',
     phone: '',
     dob: '',
+    gender: '',  // Add this line
     place_of_living: '',
     face_photo: undefined as File | undefined,
     passport_photo: undefined as File | undefined,
-    driver_license_photo: undefined as File | undefined  // Add this line
+    driver_license_photo: undefined as File | undefined
   });
 
   // Add view modal state
@@ -393,10 +394,11 @@ const DriverManagement: React.FC = () => {
           password: '',
           phone: '',
           dob: '',
+          gender: '',  // Add this line
           place_of_living: '',
           face_photo: undefined,
           passport_photo: undefined,
-          driver_license_photo: undefined  // Add this line
+          driver_license_photo: undefined
         });
         fetchUsers();
         alert('Driver created successfully!');
@@ -1238,6 +1240,18 @@ const DriverManagement: React.FC = () => {
                 />
               </div>
               <div>
+                <label className="block text-sm font-medium text-gray-700">Gender</label>
+                <select
+                  value={createForm.gender}
+                  onChange={(e) => setCreateForm(prev => ({ ...prev, gender: e.target.value }))}
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select Gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                </select>
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700">Place of Living</label>
                 <input
                   type="text"
@@ -1284,10 +1298,11 @@ const DriverManagement: React.FC = () => {
                       password: '',
                       phone: '',
                       dob: '',
+                      gender: '',  // Add this line
                       place_of_living: '',
                       face_photo: undefined,
                       passport_photo: undefined,
-                      driver_license_photo: undefined  // Add this line
+                      driver_license_photo: undefined
                     });
                   }}
                   className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
