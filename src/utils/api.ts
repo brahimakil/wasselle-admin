@@ -1204,7 +1204,10 @@ export class ApiService {
   }): Promise<ApiResponse> {
     const response = await this.makeProxyRequest('admin/vehicles/update-status.php', {
       method: 'POST',
-      headers: this.getAuthHeaders(),
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.getAuthHeaders()
+      },
       body: JSON.stringify(data)
     });
     
