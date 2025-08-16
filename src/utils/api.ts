@@ -1232,7 +1232,7 @@ export class ApiService {
         body: JSON.stringify(data)
       });
       
-      console.log(' Response status:', response.status);
+      console.log('🚗 Response status:', response.status);
       console.log('🚗 Response ok:', response.ok);
       console.log('🚗 Response headers:', Object.fromEntries(response.headers.entries()));
       
