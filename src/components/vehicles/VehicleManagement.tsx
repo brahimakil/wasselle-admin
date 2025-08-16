@@ -49,7 +49,7 @@ const VehicleManagement: React.FC = () => {
   const [viewVehicle, setViewVehicle] = useState<Vehicle | null>(null);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [statusVehicle, setStatusVehicle] = useState<Vehicle | null>(null);
-  const [statusAction, setStatusAction] = useState<'approved' | 'rejected'>('approved');
+  const [statusAction, setStatusAction] = useState<'approved' | 'rejected' | 'pending'>('approved');
   const [rejectionReason, setRejectionReason] = useState('');
 
   useEffect(() => {
@@ -97,13 +97,18 @@ const VehicleManagement: React.FC = () => {
     setShowViewModal(true);
   };
 
-  const handleStatusAction = (vehicle: Vehicle, action: 'approved' | 'rejected') => {
+  // Update the handleStatusAction function to support all status transitions
+  const handleStatusAction = (vehicle: Vehicle, action: 'approved' | 'rejected' | 'pending') => {
     setStatusVehicle(vehicle);
     setStatusAction(action);
     setRejectionReason('');
     setShowStatusModal(true);
   };
 
+  // Update the state type to include 'pending'
+  const [statusAction, setStatusAction] = useState<'approved' | 'rejected' | 'pending'>('approved');
+
+  // Update the handleUpdateStatus function to handle 'pending' status
   const handleUpdateStatus = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -422,29 +427,67 @@ const VehicleManagement: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {formatDate(vehicle.created_at)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                      <button
-                        onClick={() => handleViewVehicle(vehicle)}
-                        className="text-blue-600 hover:text-blue-900"
-                      >
-                        View Details
-                      </button>
-                      {vehicle.status === 'pending' && (
-                        <>
-                          <button
-                            onClick={() => handleStatusAction(vehicle, 'approved')}
-                            className="text-green-600 hover:text-green-900"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            onClick={() => handleStatusAction(vehicle, 'rejected')}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            Reject
-                          </button>
-                        </>
-                      )}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleViewVehicle(vehicle)}
+                          className="text-blue-600 hover:text-blue-900"
+                        >
+                          View Details
+                        </button>
+                        
+                        {/* Show different action buttons based on current status */}
+                        {vehicle.status === 'pending' && (
+                          <>
+                            <button
+                              onClick={() => handleStatusAction(vehicle, 'approved')}
+                              className="text-green-600 hover:text-green-900"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => handleStatusAction(vehicle, 'rejected')}
+                              className="text-red-600 hover:text-red-900"
+                            >
+                              Reject
+                            </button>
+                          </>
+                        )}
+                        
+                        {vehicle.status === 'approved' && (
+                          <>
+                            <button
+                              onClick={() => handleStatusAction(vehicle, 'pending')}
+                              className="text-yellow-600 hover:text-yellow-900"
+                            >
+                              Set Pending
+                            </button>
+                            <button
+                              onClick={() => handleStatusAction(vehicle, 'rejected')}
+                              className="text-red-600 hover:text-red-900"
+                            >
+                              Reject
+                            </button>
+                          </>
+                        )}
+                        
+                        {vehicle.status === 'rejected' && (
+                          <>
+                            <button
+                              onClick={() => handleStatusAction(vehicle, 'pending')}
+                              className="text-yellow-600 hover:text-yellow-900"
+                            >
+                              Set Pending
+                            </button>
+                            <button
+                              onClick={() => handleStatusAction(vehicle, 'approved')}
+                              className="text-green-600 hover:text-green-900"
+                            >
+                              Approve
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -681,9 +724,9 @@ const VehicleManagement: React.FC = () => {
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              {viewVehicle.status === 'pending' && (
-                <div className="mt-6 flex justify-center space-x-4">
+              {/* Action Buttons - Show for all statuses, not just pending */}
+              <div className="mt-6 flex justify-center space-x-4">
+                {viewVehicle.status !== 'approved' && (
                   <button
                     onClick={() => {
                       closeModals();
@@ -693,6 +736,21 @@ const VehicleManagement: React.FC = () => {
                   >
                     ✅ Approve Vehicle
                   </button>
+                )}
+                
+                {viewVehicle.status !== 'pending' && (
+                  <button
+                    onClick={() => {
+                      closeModals();
+                      handleStatusAction(viewVehicle, 'pending');
+                    }}
+                    className="px-6 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors duration-200"
+                  >
+                    ⏳ Set Pending
+                  </button>
+                )}
+                
+                {viewVehicle.status !== 'rejected' && (
                   <button
                     onClick={() => {
                       closeModals();
@@ -702,8 +760,8 @@ const VehicleManagement: React.FC = () => {
                   >
                     ❌ Reject Vehicle
                   </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -716,7 +774,9 @@ const VehicleManagement: React.FC = () => {
             <div className="px-6 py-4 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-gray-900">
-                  {statusAction === 'approved' ? 'Approve Vehicle' : 'Reject Vehicle'}
+                  {statusAction === 'approved' && 'Approve Vehicle'}
+                  {statusAction === 'rejected' && 'Reject Vehicle'}
+                  {statusAction === 'pending' && 'Set Vehicle to Pending'}
                 </h3>
                 <button
                   onClick={closeModals}
@@ -751,19 +811,22 @@ const VehicleManagement: React.FC = () => {
                     <p className="text-lg font-medium text-gray-900">Reject this vehicle?</p>
                   </div>
                   
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Rejection Reason *
-                    </label>
-                    <textarea
-                      value={rejectionReason}
-                      onChange={(e) => setRejectionReason(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                      rows={4}
-                      placeholder="Explain why this vehicle is being rejected (e.g., license plate not visible, unclear photos, invalid registration, etc.)"
-                      required
-                    />
-                  </div>
+                  {statusAction === 'rejected' && (
+                    <div className="mb-4">
+                      <label htmlFor="rejectionReason" className="block text-sm font-medium text-gray-700 mb-2">
+                        Rejection Reason *
+                      </label>
+                      <textarea
+                        id="rejectionReason"
+                        value={rejectionReason}
+                        onChange={(e) => setRejectionReason(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        rows={3}
+                        placeholder="Explain why this vehicle is being rejected (e.g., license plate not visible, unclear photos, invalid registration, etc.)"
+                        required
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 
