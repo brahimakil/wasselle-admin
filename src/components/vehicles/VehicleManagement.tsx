@@ -433,6 +433,9 @@ const VehicleManagement: React.FC = () => {
                           View Details
                         </button>
                         
+                        {/* DEBUG: Log the vehicle status */}
+                        {console.log('🚗 Vehicle ID:', vehicle.id, 'Status:', vehicle.status, 'Type:', typeof vehicle.status)}
+                        
                         {/* Show different action buttons based on current status */}
                         {vehicle.status === 'pending' && (
                           <>
@@ -453,6 +456,7 @@ const VehicleManagement: React.FC = () => {
                         
                         {vehicle.status === 'approved' && (
                           <>
+                            <span className="text-xs text-gray-500">[DEBUG: APPROVED]</span>
                             <button
                               onClick={() => handleStatusAction(vehicle, 'pending')}
                               className="text-yellow-600 hover:text-yellow-900"
@@ -483,6 +487,11 @@ const VehicleManagement: React.FC = () => {
                               Approve
                             </button>
                           </>
+                        )}
+                        
+                        {/* DEBUG: Show if none of the conditions match */}
+                        {vehicle.status !== 'pending' && vehicle.status !== 'approved' && vehicle.status !== 'rejected' && (
+                          <span className="text-xs text-red-500">[DEBUG: UNKNOWN STATUS: {vehicle.status}]</span>
                         )}
                       </div>
                     </td>
