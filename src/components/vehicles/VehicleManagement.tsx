@@ -116,21 +116,48 @@ const VehicleManagement: React.FC = () => {
 
     try {
       setError('');
-      const response = await ApiService.updateVehicleStatus({
+      
+      // Log the request data for debugging
+      const requestData = {
         vehicle_id: statusVehicle.id,
         status: statusAction,
         rejection_reason: statusAction === 'rejected' ? rejectionReason : undefined
-      });
+      };
+      
+      console.log('🚗 Updating vehicle status:', requestData);
+      console.log('🚗 Vehicle details:', statusVehicle);
+      
+      const response = await ApiService.updateVehicleStatus(requestData);
+      
+      console.log('🚗 API Response:', response);
 
       if (response.success) {
+        console.log('✅ Vehicle status updated successfully');
         setShowStatusModal(false);
         setStatusVehicle(null);
         fetchVehicles();
       } else {
-        setError(response.message || 'Failed to update vehicle status');
+        const errorMessage = `Failed to update vehicle status: ${response.message || 'Unknown error'}`;
+        console.error('❌ Vehicle update failed:', response);
+        setError(errorMessage);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      console.error('🔥 Vehicle update error details:', err);
+      console.error('🔥 Error type:', typeof err);
+      console.error('🔥 Error instanceof Error:', err instanceof Error);
+      
+      let errorMessage = 'An error occurred while updating vehicle status';
+      
+      if (err instanceof Error) {
+        errorMessage = `Error: ${err.message}`;
+        console.error('🔥 Error message:', err.message);
+        console.error('🔥 Error stack:', err.stack);
+      } else {
+        console.error('🔥 Non-Error object thrown:', err);
+        errorMessage = `Unexpected error: ${JSON.stringify(err)}`;
+      }
+      
+      setError(errorMessage);
     }
   };
 
@@ -280,10 +307,43 @@ const VehicleManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* Error Message */}
+      {/* Enhanced Error Message */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-          {error}
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg relative">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">
+                Vehicle Update Error
+              </h3>
+              <div className="mt-2 text-sm text-red-700">
+                <pre className="whitespace-pre-wrap font-mono text-xs bg-red-100 p-2 rounded mt-2">
+                  {error}
+                </pre>
+              </div>
+              <div className="mt-3">
+                <button
+                  onClick={() => {
+                    console.log('🔍 Copying error to clipboard...');
+                    navigator.clipboard.writeText(error);
+                  }}
+                  className="text-xs bg-red-200 hover:bg-red-300 text-red-800 px-2 py-1 rounded mr-2"
+                >
+                  Copy Error
+                </button>
+                <button
+                  onClick={() => setError('')}
+                  className="text-xs bg-red-200 hover:bg-red-300 text-red-800 px-2 py-1 rounded"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
