@@ -1182,8 +1182,7 @@ export class ApiService {
     return this.handleResponse(response);
   }
 
-  // Update the vehicle management methods to call backend directly instead of using proxy
-  // Vehicle Management APIs - Force HTTP calls to avoid proxy issues
+  // Vehicle Management APIs - Use proxy to avoid mixed content issues
   static async getVehicles(params: {
     page?: number;
     limit?: number;
@@ -1201,13 +1200,10 @@ export class ApiService {
       }
     });
 
-    // Force HTTP call directly to backend
-    const response = await fetch(`http://161.97.179.72/wasselle/api/admin/vehicles/list.php?${queryParams}`, {
+    // Use proxy to avoid mixed content issues
+    const response = await this.makeProxyRequest(`admin/vehicles/list.php?${queryParams}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...this.getAuthHeaders()
-      }
+      headers: this.getAuthHeaders()
     });
     
     return this.handleResponse(response);
@@ -1222,8 +1218,8 @@ export class ApiService {
       console.log('🚗 updateVehicleStatus called with:', data);
       console.log('🚗 Auth headers:', this.getAuthHeaders());
       
-      // Force HTTP call directly to backend
-      const response = await fetch('http://161.97.179.72/wasselle/api/admin/vehicles/update-status.php', {
+      // Use proxy to avoid mixed content issues
+      const response = await this.makeProxyRequest('admin/vehicles/update-status.php', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1234,7 +1230,6 @@ export class ApiService {
       
       console.log('🚗 Response status:', response.status);
       console.log('🚗 Response ok:', response.ok);
-      console.log('🚗 Response headers:', Object.fromEntries(response.headers.entries()));
       
       return this.handleResponse(response);
     } catch (error) {
@@ -1244,13 +1239,10 @@ export class ApiService {
   }
 
   static async getVehicleById(id: number): Promise<ApiResponse> {
-    // Force HTTP call directly to backend
-    const response = await fetch(`http://161.97.179.72/wasselle/api/admin/vehicles/get.php?id=${id}`, {
+    // Use proxy to avoid mixed content issues
+    const response = await this.makeProxyRequest(`admin/vehicles/get.php?id=${id}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...this.getAuthHeaders()
-      }
+      headers: this.getAuthHeaders()
     });
     
     return this.handleResponse(response);
