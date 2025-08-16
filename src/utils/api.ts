@@ -1243,7 +1243,7 @@ static getImageUrl(path: string): string {
  
 static async updateVehicleStatus(data: {
   vehicle_id: number;
-  status: 'approved' | 'rejected';
+  status: 'approved' | 'rejected' | 'pending';
   rejection_reason?: string;
 }): Promise<ApiResponse> {
   try {
