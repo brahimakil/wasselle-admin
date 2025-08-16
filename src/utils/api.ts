@@ -293,28 +293,48 @@ export class ApiService {
     return data;
   }
 
-  // Helper method to make requests through proxy
-  private static async makeProxyRequest(endpoint: string, options: RequestInit = {}): Promise<Response> {
-    console.log('🔍 makeProxyRequest called with:', { endpoint, options });
+
+// Helper method to make requests directly to your API (NO MORE PROXY!)
+private static async makeProxyRequest(endpoint: string, options: RequestInit = {}): Promise<Response> {
+  console.log('🔍 makeProxyRequest called with:', { endpoint, options });
+  
+  // Get auth token
+  const getAuthToken = (): string | null => {
+    return localStorage.getItem('admin_token');
+  };
+  
+  try {
+    // Build the full URL to your actual API
+    const fullUrl = `http://161.97.179.72/wasselle/${endpoint}`;
+    console.log('🔍 Making request to:', fullUrl);
     
-    try {
-      const response = await fetch('/api/proxy', {
-        ...options,
-        headers: {
-          ...options.headers,
-          'X-API-Path': endpoint,
-        },
-      });
-      
-      console.log('🔍 Proxy response status:', response.status);
-      console.log('🔍 Proxy response ok:', response.ok);
-      
-      return response;
-    } catch (error) {
-      console.error('🔍 Proxy request failed:', error);
-      throw error;
+    // Prepare headers
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...options.headers
+    };
+    
+    // Add auth token if available
+    const token = getAuthToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
+    
+    const response = await fetch(fullUrl, {
+      ...options,
+      headers,
+      mode: 'cors', // Enable CORS
+    });
+    
+    console.log('🔍 Direct API response status:', response.status);
+    console.log('🔍 Direct API response ok:', response.ok);
+    
+    return response;
+  } catch (error) {
+    console.error('🔍 Direct API request failed:', error);
+    throw error;
   }
+}
 
   // Admin Authentication
   static async adminLogin(email: string, password: string): Promise<ApiResponse> {
